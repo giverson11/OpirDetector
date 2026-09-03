@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/garretti/Documents/C++Practice/PracticeScitecProject/build",
+  "command": "/usr/bin/c++  -I/home/garretti/Documents/C++Practice/PracticeScitecProject/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -o CMakeFiles/scitec_sim.dir/src/sim/SceneSimulator.cpp.o -c /home/garretti/Documents/C++Practice/PracticeScitecProject/src/sim/SceneSimulator.cpp",
+  "file": "/home/garretti/Documents/C++Practice/PracticeScitecProject/src/sim/SceneSimulator.cpp",
+  "output": "CMakeFiles/scitec_sim.dir/src/sim/SceneSimulator.cpp.o"
+},
+{
+  "directory": "/home/garretti/Documents/C++Practice/PracticeScitecProject/build",
+  "command": "/usr/bin/c++  -I/home/garretti/Documents/C++Practice/PracticeScitecProject/include -O3 -DNDEBUG -std=c++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -o CMakeFiles/scitec_opir_detection.dir/src/app/main.cpp.o -c /home/garretti/Documents/C++Practice/PracticeScitecProject/src/app/main.cpp",
+  "file": "/home/garretti/Documents/C++Practice/PracticeScitecProject/src/app/main.cpp",
+  "output": "CMakeFiles/scitec_opir_detection.dir/src/app/main.cpp.o"
+}
+]

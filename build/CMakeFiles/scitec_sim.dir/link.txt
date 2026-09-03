@@ -1,0 +1,2 @@
+/usr/bin/ar qc libscitec_sim.a CMakeFiles/scitec_sim.dir/src/sim/SceneSimulator.cpp.o
+/usr/bin/ranlib libscitec_sim.a
