@@ -1,0 +1,174 @@
+{
+  "tests": 22,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "SceneParamsDcLevel",
+      "tests": 3,
+      "testsuite": [
+        {
+          "name": "SetsEveryPixelWhenNothingElseContributes",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 77
+        },
+        {
+          "name": "IsRoundedToTheNearestCount",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 89
+        },
+        {
+          "name": "ClampsBelowZeroAndAboveSaturation",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "name": "SceneParamsRowGradient",
+      "tests": 2,
+      "testsuite": [
+        {
+          "name": "AddsALinearRampDownRowsOnly",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 110
+        },
+        {
+          "name": "MayBeNegativeAndClampsAtZero",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 126
+        }
+      ]
+    },
+    {
+      "name": "SceneParamsMean",
+      "tests": 1,
+      "testsuite": [
+        {
+          "name": "OffsetsEveryPixelOncePerNoiseSource",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 143
+        }
+      ]
+    },
+    {
+      "name": "SceneParamsFpnSigma",
+      "tests": 3,
+      "testsuite": [
+        {
+          "name": "IsIdenticalInEveryFrame",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 157
+        },
+        {
+          "name": "SetsTheSpatialSpreadAboutDcLevel",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 169
+        },
+        {
+          "name": "LeavesAFlatFrameWhenZero",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 181
+        }
+      ]
+    },
+    {
+      "name": "SceneParamsReadSigma",
+      "tests": 2,
+      "testsuite": [
+        {
+          "name": "VariesFromFrameToFrame",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 193
+        },
+        {
+          "name": "SetsTheTemporalSpreadOfASinglePixel",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 206
+        }
+      ]
+    },
+    {
+      "name": "SceneSimulatorSeed",
+      "tests": 1,
+      "testsuite": [
+        {
+          "name": "ReproducesAFrameExactlyAndDiffersAcrossSeeds",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 223
+        }
+      ]
+    },
+    {
+      "name": "SceneSimulatorRender",
+      "tests": 1,
+      "testsuite": [
+        {
+          "name": "RejectsABufferSmallerThanTheFrame",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 237
+        }
+      ]
+    },
+    {
+      "name": "TargetRender",
+      "tests": 5,
+      "testsuite": [
+        {
+          "name": "IsSymmetricAboutItsCenter",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 266
+        },
+        {
+          "name": "PeaksAtTheTargetCenterWithTheTargetAmplitude",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 284
+        },
+        {
+          "name": "PeakFollowsTheTargetRatesOverTime",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 297
+        },
+        {
+          "name": "FallsOffMonotonicallyAwayFromThePeak",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 316
+        },
+        {
+          "name": "EnergyOfTwoTargetsAdds",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 364
+        }
+      ]
+    },
+    {
+      "name": "Blobs\/TargetEnergyTest",
+      "tests": 4,
+      "testsuite": [
+        {
+          "name": "TotalsTheAnalyticGaussianIntegral\/0",
+          "value_param": "(1000, 1.5)",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 348
+        },
+        {
+          "name": "TotalsTheAnalyticGaussianIntegral\/1",
+          "value_param": "(1000, 3)",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 348
+        },
+        {
+          "name": "TotalsTheAnalyticGaussianIntegral\/2",
+          "value_param": "(5000, 4)",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 348
+        },
+        {
+          "name": "TotalsTheAnalyticGaussianIntegral\/3",
+          "value_param": "(250, 6)",
+          "file": "\/home\/garretti\/Documents\/C++Practice\/PracticeScitecProject\/tests\/sim\/SceneSimulatorTest.cpp",
+          "line": 348
+        }
+      ]
+    }
+  ]
+}

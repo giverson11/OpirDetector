@@ -49,3 +49,10 @@ scitect_set_warnings(scitec_sim)
 add_executable(scitec_opir_detection src/app/main.cpp)
 target_link_libraries(scitec_opir_detection PRIVATE scitec_sim)
 scitect_set_warnings(scitec_opir_detection)
+
+option(SCITEC_BUILD_TESTS "Build the unit tests" ON)
+
+if(SCITEC_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
