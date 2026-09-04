@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <vector>
 
-namespace scitec {
+namespace opir {
 namespace {
 
 int run(std::vector<std::string_view> arguments) {
@@ -19,11 +19,11 @@ int run(std::vector<std::string_view> arguments) {
     return 0;
 }
 } // namespace
-} // namespace scitec
+} // namespace opir
 int main(int argc, char **argv) {
     const std::vector<std::string_view> arguments(argv + 1, argv + argc);
     try {
-        return scitec::run(arguments);
+        return opir::run(arguments);
     } catch (const std::exception &error) {
         return 1;
     }

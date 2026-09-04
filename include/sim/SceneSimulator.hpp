@@ -4,7 +4,7 @@
 #include <span>
 #include <vector>
 
-namespace scitec {
+namespace opir {
 struct Target {
     double r0, c0, r_rate, c_rate, amplitude, sigma;
     double row(double t) const { return r0 + r_rate * t; }
@@ -56,4 +56,4 @@ class SceneSimulator {
     std::normal_distribution<double> read_noise_;
     std::vector<Target> targets_;
 };
-} // namespace scitec
+} // namespace opir

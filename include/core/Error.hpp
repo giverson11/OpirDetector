@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace scitec {
+namespace opir {
 
 /// The single exception type this program throws: an unreadable file, a row
 /// that will not parse, or a time outside the data all surface as an Error.
@@ -11,4 +11,4 @@ struct Error : std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-} // namespace scitec
+} // namespace opir

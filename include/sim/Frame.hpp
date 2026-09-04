@@ -2,7 +2,7 @@
 #include <sys/types.h>
 #include <vector>
 
-namespace scitec {
+namespace opir {
 
 template <typename T> struct FrameHeader {
     u_int16_t frame_count = 0;
@@ -11,4 +11,4 @@ template <typename T> struct FrameHeader {
     std::vector<T> raw;
 };
 
-} // namespace scitec
+} // namespace opir

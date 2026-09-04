@@ -6,7 +6,7 @@
 #include <limits>
 #include <random>
 
-namespace scitec {
+namespace opir {
 
 namespace {
 
@@ -53,4 +53,4 @@ void SceneSimulator::render(double t, std::span<uint16_t> out) {
     }
 }
 
-} // namespace scitec
+} // namespace opir

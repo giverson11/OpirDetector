@@ -1,6 +1,6 @@
 #pragma once
 
-namespace scitec {
+namespace opir {
 
 /// Pairs a value with the time it applies to.
 ///
@@ -12,4 +12,4 @@ template <typename T> struct Sample {
     T value{};               ///< The value observed or computed at that time.
 };
 
-} // namespace scitec
+} // namespace opir
