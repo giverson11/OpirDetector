@@ -1,4 +1,0 @@
-/home/garretti/Documents/C++Practice/PracticeScitecProject/build/CMakeFiles/scitec_sim.dir
-/home/garretti/Documents/C++Practice/PracticeScitecProject/build/CMakeFiles/scitec_opir_detection.dir
-/home/garretti/Documents/C++Practice/PracticeScitecProject/build/CMakeFiles/edit_cache.dir
-/home/garretti/Documents/C++Practice/PracticeScitecProject/build/CMakeFiles/rebuild_cache.dir

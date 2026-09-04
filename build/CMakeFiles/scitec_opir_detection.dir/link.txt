@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/scitec_opir_detection.dir/link.d CMakeFiles/scitec_opir_detection.dir/src/app/main.cpp.o -o scitec_opir_detection  libscitec_sim.a

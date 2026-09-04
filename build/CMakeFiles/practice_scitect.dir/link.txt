@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/practice_scitect.dir/link.d CMakeFiles/practice_scitect.dir/src/main.cpp.o -o practice_scitect
