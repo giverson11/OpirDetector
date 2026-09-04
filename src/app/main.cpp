@@ -19,14 +19,13 @@ int run(std::vector<std::string_view> arguments) {
     return 0;
 }
 } // namespace
-
+} // namespace scitec
 int main(int argc, char **argv) {
     const std::vector<std::string_view> arguments(argv + 1, argv + argc);
     try {
-        return run(arguments);
+        return scitec::run(arguments);
     } catch (const std::exception &error) {
         return 1;
     }
     return 0;
 }
-} // namespace scitec
