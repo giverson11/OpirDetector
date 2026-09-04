@@ -2,7 +2,7 @@ add_test([=[SceneParamsDcLevel.SetsEveryPixelWhenNothingElseContributes]=]  [==[
 set_tests_properties([=[SceneParamsDcLevel.SetsEveryPixelWhenNothingElseContributes]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:77]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:78]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -11,7 +11,7 @@ add_test([=[SceneParamsDcLevel.IsRoundedToTheNearestCount]=]  [==[/home/garretti
 set_tests_properties([=[SceneParamsDcLevel.IsRoundedToTheNearestCount]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:89]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:90]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -20,7 +20,7 @@ add_test([=[SceneParamsDcLevel.ClampsBelowZeroAndAboveSaturation]=]  [==[/home/g
 set_tests_properties([=[SceneParamsDcLevel.ClampsBelowZeroAndAboveSaturation]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:97]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:98]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -29,7 +29,7 @@ add_test([=[SceneParamsRowGradient.AddsALinearRampDownRowsOnly]=]  [==[/home/gar
 set_tests_properties([=[SceneParamsRowGradient.AddsALinearRampDownRowsOnly]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:110]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:111]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -38,7 +38,7 @@ add_test([=[SceneParamsRowGradient.MayBeNegativeAndClampsAtZero]=]  [==[/home/ga
 set_tests_properties([=[SceneParamsRowGradient.MayBeNegativeAndClampsAtZero]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:126]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:128]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -47,7 +47,7 @@ add_test([=[SceneParamsMean.OffsetsEveryPixelOncePerNoiseSource]=]  [==[/home/ga
 set_tests_properties([=[SceneParamsMean.OffsetsEveryPixelOncePerNoiseSource]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:143]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:145]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -56,7 +56,7 @@ add_test([=[SceneParamsFpnSigma.IsIdenticalInEveryFrame]=]  [==[/home/garretti/D
 set_tests_properties([=[SceneParamsFpnSigma.IsIdenticalInEveryFrame]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:157]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:159]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -65,7 +65,7 @@ add_test([=[SceneParamsFpnSigma.SetsTheSpatialSpreadAboutDcLevel]=]  [==[/home/g
 set_tests_properties([=[SceneParamsFpnSigma.SetsTheSpatialSpreadAboutDcLevel]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:169]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:171]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -74,7 +74,7 @@ add_test([=[SceneParamsFpnSigma.LeavesAFlatFrameWhenZero]=]  [==[/home/garretti/
 set_tests_properties([=[SceneParamsFpnSigma.LeavesAFlatFrameWhenZero]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:181]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:183]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -83,7 +83,7 @@ add_test([=[SceneParamsReadSigma.VariesFromFrameToFrame]=]  [==[/home/garretti/D
 set_tests_properties([=[SceneParamsReadSigma.VariesFromFrameToFrame]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:193]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:195]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -92,7 +92,7 @@ add_test([=[SceneParamsReadSigma.SetsTheTemporalSpreadOfASinglePixel]=]  [==[/ho
 set_tests_properties([=[SceneParamsReadSigma.SetsTheTemporalSpreadOfASinglePixel]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:206]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:208]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -101,7 +101,7 @@ add_test([=[SceneSimulatorSeed.ReproducesAFrameExactlyAndDiffersAcrossSeeds]=]  
 set_tests_properties([=[SceneSimulatorSeed.ReproducesAFrameExactlyAndDiffersAcrossSeeds]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:223]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:226]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -110,7 +110,7 @@ add_test([=[SceneSimulatorRender.RejectsABufferSmallerThanTheFrame]=]  [==[/home
 set_tests_properties([=[SceneSimulatorRender.RejectsABufferSmallerThanTheFrame]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:237]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:240]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -119,7 +119,7 @@ add_test([=[TargetRender.IsSymmetricAboutItsCenter]=]  [==[/home/garretti/Docume
 set_tests_properties([=[TargetRender.IsSymmetricAboutItsCenter]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:266]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:269]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -128,7 +128,7 @@ add_test([=[TargetRender.PeaksAtTheTargetCenterWithTheTargetAmplitude]=]  [==[/h
 set_tests_properties([=[TargetRender.PeaksAtTheTargetCenterWithTheTargetAmplitude]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:284]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:288]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -137,7 +137,7 @@ add_test([=[TargetRender.PeakFollowsTheTargetRatesOverTime]=]  [==[/home/garrett
 set_tests_properties([=[TargetRender.PeakFollowsTheTargetRatesOverTime]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:297]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:302]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -146,7 +146,7 @@ add_test([=[TargetRender.FallsOffMonotonicallyAwayFromThePeak]=]  [==[/home/garr
 set_tests_properties([=[TargetRender.FallsOffMonotonicallyAwayFromThePeak]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:316]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:322]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -155,7 +155,7 @@ add_test([=[TargetRender.EnergyOfTwoTargetsAdds]=]  [==[/home/garretti/Documents
 set_tests_properties([=[TargetRender.EnergyOfTwoTargetsAdds]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:364]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:370]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -164,7 +164,7 @@ add_test([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(1000, 1.5)
 set_tests_properties([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(1000, 1.5)]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:348]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:355]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -173,7 +173,7 @@ add_test([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(1000, 3)]=
 set_tests_properties([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(1000, 3)]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:348]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:355]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -182,7 +182,7 @@ add_test([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(5000, 4)]=
 set_tests_properties([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(5000, 4)]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:348]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:355]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     
@@ -191,7 +191,7 @@ add_test([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(250, 6)]=]
 set_tests_properties([=[Blobs/TargetEnergyTest.TotalsTheAnalyticGaussianIntegral/(250, 6)]=]
   PROPERTIES
     
-    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:348]==]
+    DEF_SOURCE_LINE [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/tests/sim/SceneSimulatorTest.cpp:355]==]
     WORKING_DIRECTORY [==[/home/garretti/Documents/C++Practice/PracticeScitecProject/build/tests]==]
     SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==]
     

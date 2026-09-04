@@ -1,0 +1,83 @@
+name: CI
+
+# When the workflow runs: every push to master, every pull request aimed at it,
+# and on demand from the Actions tab.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Pushing again to the same branch cancels the run still in flight for it, so
+# only the newest commit is spending CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.image }} / ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
+    # CMakeLists.txt rejects anything older than GCC 15 and the hosted runner
+    # image does not ship one, so the job runs inside an official GCC container.
+    # gcc:15 is the floor the project claims to support; gcc:16 is what this is
+    # developed on.
+    container: ${{ matrix.image }}
+    strategy:
+      # Let every combination report, rather than cancelling the rest at the
+      # first failure.
+      fail-fast: false
+      matrix:
+        image: ["gcc:15", "gcc:16"]
+        build_type: [Debug, Release]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Install CMake and Ninja
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends cmake ninja-build
+
+      # GoogleTest is not installed in the container, so tests/CMakeLists.txt
+      # falls back to fetching a pinned copy from upstream.
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      # The delivery half: a green Release build leaves a downloadable binary
+      # attached to the run, kept for 14 days.
+      - name: Upload the release binary
+        if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v7
+        with:
+          name: scitec_opir_detection
+          path: build/scitec_opir_detection
+          if-no-files-found: error
+          retention-days: 14
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      # Pinned to the exact version used locally: clang-format's output drifts
+      # between releases, and an unpinned check fails on formatting that is
+      # correct on your machine.
+      - name: Install clang-format
+        run: pipx install clang-format==22.1.8
+
+      - name: Check formatting
+        run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')

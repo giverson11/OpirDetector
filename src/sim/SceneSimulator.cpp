@@ -47,7 +47,8 @@ void SceneSimulator::render(double t, std::span<uint16_t> out) {
                 double dr = static_cast<double>(r) - target.row(t),
                        dc = static_cast<double>(c) - target.col(t);
                 double s2 = target.sigma * target.sigma;
-                v += target.amplitude * std::exp(-(dr * dr + dc * dc) / (2 * s2));
+                v += target.amplitude *
+                     std::exp(-(dr * dr + dc * dc) / (2 * s2));
             }
             out[r * columns_ + c] = quantize(v);
         }

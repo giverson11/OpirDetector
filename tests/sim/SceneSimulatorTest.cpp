@@ -47,7 +47,8 @@ struct Image {
 
 Image render(SceneSimulator &simulator, std::size_t rows, std::size_t columns,
              double t = 0.0) {
-    Image image{.rows = rows, .columns = columns,
+    Image image{.rows = rows,
+                .columns = columns,
                 .pixels = std::vector<uint16_t>(rows * columns)};
     simulator.render(t, image.pixels);
     return image;
@@ -119,7 +120,8 @@ TEST(SceneParamsRowGradient, AddsALinearRampDownRowsOnly) {
         const uint16_t expected =
             static_cast<uint16_t>(1000 + 25 * static_cast<int>(r));
         for (std::size_t c = 0; c < image.columns; ++c)
-            EXPECT_EQ(image.at(r, c), expected) << "at row " << r << ", column " << c;
+            EXPECT_EQ(image.at(r, c), expected)
+                << "at row " << r << ", column " << c;
     }
 }
 
@@ -213,7 +215,8 @@ TEST(SceneParamsReadSigma, SetsTheTemporalSpreadOfASinglePixel) {
     std::vector<uint16_t> history;
     history.reserve(kFrames);
     for (std::size_t frame = 0; frame < kFrames; ++frame)
-        history.push_back(render(simulator, 8, 8, static_cast<double>(frame)).at(3, 5));
+        history.push_back(
+            render(simulator, 8, 8, static_cast<double>(frame)).at(3, 5));
 
     EXPECT_NEAR(mean_of(history), 10000.0, 5.0);
     EXPECT_NEAR(stddev_of(history), 30.0, 3.0);
@@ -272,7 +275,8 @@ TEST(TargetRender, IsSymmetricAboutItsCenter) {
             << "row symmetry broken at offset " << d;
         EXPECT_EQ(image.at(center, center + d), image.at(center, center - d))
             << "column symmetry broken at offset " << d;
-        EXPECT_EQ(image.at(center + d, center + d), image.at(center - d, center - d))
+        EXPECT_EQ(image.at(center + d, center + d),
+                  image.at(center - d, center - d))
             << "diagonal symmetry broken at offset " << d;
         // The blob is circular, so swapping the two offsets must not matter.
         EXPECT_EQ(image.at(center + d, center + 2 * d),
@@ -285,7 +289,8 @@ TEST(TargetRender, PeaksAtTheTargetCenterWithTheTargetAmplitude) {
     const Image image = render_centered_target(5000.0, 4.0);
     constexpr std::size_t center = kCenterIndex;
 
-    const auto peak = std::max_element(image.pixels.begin(), image.pixels.end());
+    const auto peak =
+        std::max_element(image.pixels.begin(), image.pixels.end());
     const std::size_t index =
         static_cast<std::size_t>(std::distance(image.pixels.begin(), peak));
 
@@ -305,7 +310,8 @@ TEST(TargetRender, PeakFollowsTheTargetRatesOverTime) {
 
     const Image image = render(simulator, kGrid, kGrid, 6.0);
 
-    const auto peak = std::max_element(image.pixels.begin(), image.pixels.end());
+    const auto peak =
+        std::max_element(image.pixels.begin(), image.pixels.end());
     const std::size_t index =
         static_cast<std::size_t>(std::distance(image.pixels.begin(), peak));
 
@@ -323,7 +329,8 @@ TEST(TargetRender, FallsOffMonotonicallyAwayFromThePeak) {
         for (std::size_t d = 0; d + 1 < kCenterIndex; ++d) {
             const auto sample = [&](std::size_t k) {
                 return image.at(center + k * static_cast<std::size_t>(row_step),
-                                center + k * static_cast<std::size_t>(column_step));
+                                center +
+                                    k * static_cast<std::size_t>(column_step));
             };
             const uint16_t here = sample(d);
             const uint16_t next = sample(d + 1);
@@ -349,8 +356,7 @@ TEST_P(TargetEnergyTest, TotalsTheAnalyticGaussianIntegral) {
     const auto [amplitude, sigma] = GetParam();
     const Image image = render_centered_target(amplitude, sigma);
 
-    const double expected =
-        amplitude * 2.0 * std::numbers::pi * sigma * sigma;
+    const double expected = amplitude * 2.0 * std::numbers::pi * sigma * sigma;
 
     EXPECT_NEAR(image.sum(), expected, 0.01 * expected);
 }
@@ -363,15 +369,23 @@ INSTANTIATE_TEST_SUITE_P(Blobs, TargetEnergyTest,
 
 TEST(TargetRender, EnergyOfTwoTargetsAdds) {
     SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
-    simulator.add_target(Target{.r0 = 24.0, .c0 = 24.0, .r_rate = 0.0,
-                                .c_rate = 0.0, .amplitude = 2000.0, .sigma = 3.0});
-    simulator.add_target(Target{.r0 = 70.0, .c0 = 70.0, .r_rate = 0.0,
-                                .c_rate = 0.0, .amplitude = 800.0, .sigma = 2.0});
+    simulator.add_target(Target{.r0 = 24.0,
+                                .c0 = 24.0,
+                                .r_rate = 0.0,
+                                .c_rate = 0.0,
+                                .amplitude = 2000.0,
+                                .sigma = 3.0});
+    simulator.add_target(Target{.r0 = 70.0,
+                                .c0 = 70.0,
+                                .r_rate = 0.0,
+                                .c_rate = 0.0,
+                                .amplitude = 800.0,
+                                .sigma = 2.0});
 
     const Image image = render(simulator, kGrid, kGrid);
 
-    const double expected = 2.0 * std::numbers::pi *
-                            (2000.0 * 9.0 + 800.0 * 4.0);
+    const double expected =
+        2.0 * std::numbers::pi * (2000.0 * 9.0 + 800.0 * 4.0);
 
     EXPECT_NEAR(image.sum(), expected, 0.01 * expected);
 }
