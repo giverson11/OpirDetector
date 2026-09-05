@@ -74,6 +74,14 @@ class SceneSimulator {
     std::normal_distribution<double> read_noise_;
     std::vector<Target> targets_;
 
+    ///
+    ///
+    ///
+    /// \param row
+    /// \param col
+    /// \return true
+    /// \return false
+    ///
     bool isTargetInFrame(double row, double col);
 };
 } // namespace opir

@@ -38,11 +38,19 @@ constexpr SceneParams params = {.mean = 0.0,
 
 int run() {
     auto sceneFile = std::ofstream(SCENE_DATA_FILE, std::ios::binary);
+    auto truthFile = std::ofstream(TRUTH_CSV_FILE);
     if (!sceneFile)
         throw Error(
             std::format("could not open {} for writing", SCENE_DATA_FILE));
 
     SceneSimulator simulator(kRows, kColumns, params, kSeed);
+
+    simulator.add_target(Target{.r0 = 24.0,
+                                .c0 = 24.0,
+                                .r_rate = 0.0,
+                                .c_rate = 0.0,
+                                .amplitude = 2000.0,
+                                .sigma = 3.0});
 
     std::vector<Pixel> buffer(kRows * kColumns);
 
@@ -52,6 +60,12 @@ int run() {
         sceneFile.write(reinterpret_cast<const char *>(buffer.data()),
                         static_cast<std::streamsize>(buffer.size()) *
                             static_cast<std::streamsize>(sizeof(Pixel)));
+
+        for (auto &record : simulator.getTargetRecords(t)) {
+            truthFile << std::format("{}, {}, {}, {}, {}\n", record.frame_id,
+                                     record.target_id, record.row, record.col,
+                                     record.amplitude);
+        }
     }
 
     std::println("wrote {} frames of {}x{} to {}", kFrames, kRows, kColumns,
