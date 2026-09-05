@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <random>
 #include <span>
+#include <sys/types.h>
 #include <vector>
 
 namespace opir {
@@ -19,6 +20,13 @@ struct SceneParams {
     double row_gradient;
 };
 
+struct TruthRecord {
+    u_int32_t frame_id;
+    u_int32_t target_id;
+    double row, col;
+    double amplitude;
+};
+
 class SceneSimulator {
   public:
     ///
@@ -31,12 +39,14 @@ class SceneSimulator {
     ///
     SceneSimulator(std::size_t rows, std::size_t columns, SceneParams params,
                    uint64_t seed);
+
     ///
     ///  Adds a target to the simulator
     ///
     /// \param target
     ///
     void add_target(Target target);
+
     ///
     /// Renders image to a given spannable collection at a given time
     /// Applies noise, a row gradient, background level and targets to the
@@ -47,6 +57,14 @@ class SceneSimulator {
     ///
     void render(double t, std::span<uint16_t> out);
 
+    ///
+    ///
+    ///
+    /// \param t
+    /// \return std::vector<TruthRecord>
+    ///
+    std::vector<TruthRecord> getTargetRecords(double t);
+
   private:
     size_t rows_;
     size_t columns_;
@@ -55,5 +73,7 @@ class SceneSimulator {
     SceneParams params_;
     std::normal_distribution<double> read_noise_;
     std::vector<Target> targets_;
+
+    bool isTargetInFrame(double row, double col);
 };
 } // namespace opir

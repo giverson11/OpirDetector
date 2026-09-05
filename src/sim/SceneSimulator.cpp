@@ -6,6 +6,8 @@
 #include <format>
 #include <limits>
 #include <random>
+#include <sys/types.h>
+#include <vector>
 
 namespace opir {
 
@@ -43,6 +45,7 @@ void SceneSimulator::render(double t, std::span<uint16_t> out) {
             double v = params_.dc_level +
                        params_.row_gradient * static_cast<double>(r) +
                        fixed_pattern_[r * columns_ + c] + read_noise_(rng_);
+
             for (const auto &target : targets_) {
                 double dr = static_cast<double>(r) - target.row(t),
                        dc = static_cast<double>(c) - target.col(t);
@@ -50,9 +53,39 @@ void SceneSimulator::render(double t, std::span<uint16_t> out) {
                 v += target.amplitude *
                      std::exp(-(dr * dr + dc * dc) / (2 * s2));
             }
+
             out[r * columns_ + c] = quantize(v);
         }
     }
+}
+
+std::vector<TruthRecord> SceneSimulator::getTargetRecords(double t) {
+    if (targets_.empty()) {
+        throw Error("Simulator has no targets assigned.");
+    }
+
+    std::vector<TruthRecord> truths;
+
+    for (size_t i = 0; i < targets_.size(); i++) {
+        Target target = targets_[i];
+        double row = target.row(t);
+        double col = target.col(t);
+
+        if (!isTargetInFrame(row, col))
+            continue;
+
+        truths.push_back(TruthRecord{.frame_id = quantize(t),
+                                     .target_id = static_cast<u_int32_t>(i),
+                                     .row = row,
+                                     .col = col,
+                                     .amplitude = target.amplitude});
+    }
+    return truths;
+}
+
+bool SceneSimulator::isTargetInFrame(double row, double col) {
+    return (row >= 0 && row < static_cast<double>(rows_)) &&
+           (col >= 0 && col < static_cast<double>(columns_));
 }
 
 } // namespace opir

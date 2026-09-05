@@ -45,6 +45,7 @@ int run() {
     SceneSimulator simulator(kRows, kColumns, params, kSeed);
 
     std::vector<Pixel> buffer(kRows * kColumns);
+
     for (int i = 0; i < kFrames; i++) {
         double t = i * 0.3;
         simulator.render(t, buffer);
