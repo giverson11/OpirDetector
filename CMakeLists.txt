@@ -46,9 +46,13 @@ target_link_libraries(scitec_sim PUBLIC scitec_core)
 scitect_set_warnings(scitec_sim)
 
 
-add_executable(scitec_opir_detection src/app/main.cpp)
+add_executable(scitec_opir_detection src/opir/main.cpp)
 target_link_libraries(scitec_opir_detection PRIVATE scitec_sim)
 scitect_set_warnings(scitec_opir_detection)
+
+add_executable(scene_gen src/sim/main.cpp)
+target_link_libraries(scene_gen PRIVATE scitec_sim)
+scitect_set_warnings(scene_gen)
 
 option(SCITEC_BUILD_TESTS "Build the unit tests" ON)
 

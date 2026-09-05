@@ -57,7 +57,16 @@ jobs:
 
       # The delivery half: a green Release build leaves a downloadable binary
       # attached to the run, kept for 14 days.
-      - name: Upload the release binary
+      - name: Upload the release scene binary
+        if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v7
+        with:
+          name: scene_gen 
+          path: build/scene_gen
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload the release opir binary
         if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
         uses: actions/upload-artifact@v7
         with:
