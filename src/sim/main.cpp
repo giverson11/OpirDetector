@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
+#include <fstream>
 #include <memory>
 #include <print>
 #include <vector>
@@ -34,16 +35,9 @@ constexpr SceneParams params = {.mean = 0.0,
                                 .read_sigma = 8.0,
                                 .dc_level = 10000.0,
                                 .row_gradient = 3.0};
-struct FileCloser {
-    void operator()(std::FILE *f) const {
-        if (f)
-            std::fclose(f);
-    }
-};
 
 int run() {
-    const auto sceneFile = std::unique_ptr<std::FILE, FileCloser>(
-        std::fopen(SCENE_DATA_FILE, "wb"));
+    auto sceneFile = std::ofstream(SCENE_DATA_FILE, std::ios::binary);
     if (!sceneFile)
         throw Error(
             std::format("could not open {} for writing", SCENE_DATA_FILE));
@@ -54,12 +48,9 @@ int run() {
     for (int i = 0; i < kFrames; i++) {
         double t = i * 0.3;
         simulator.render(t, buffer);
-        const std::size_t written = std::fwrite(buffer.data(), sizeof(Pixel),
-                                                buffer.size(), sceneFile.get());
-        if (written != buffer.size())
-            throw Error(
-                std::format("wrote only {} of {} pixels of frame {} to {}",
-                            written, buffer.size(), i, SCENE_DATA_FILE));
+        sceneFile.write(reinterpret_cast<const char *>(buffer.data()),
+                        static_cast<std::streamsize>(buffer.size()) *
+                            static_cast<std::streamsize>(sizeof(Pixel)));
     }
 
     std::println("wrote {} frames of {}x{} to {}", kFrames, kRows, kColumns,
