@@ -18,6 +18,7 @@ struct SceneParams {
     double read_sigma;
     double dc_level;
     double row_gradient;
+    double dt;
 };
 
 struct TruthRecord {
@@ -55,7 +56,7 @@ class SceneSimulator {
     /// \param t
     /// \param out
     ///
-    void render(double t, std::span<uint16_t> out);
+    void render(u_int32_t frame, std::span<uint16_t> out);
 
     ///
     ///
@@ -63,14 +64,14 @@ class SceneSimulator {
     /// \param t
     /// \return std::vector<TruthRecord>
     ///
-    std::vector<TruthRecord> getTargetRecords(double t);
+    std::vector<TruthRecord> getTargetRecords(u_int32_t frame);
 
   private:
-    size_t rows_;
-    size_t columns_;
+    const size_t rows_;
+    const size_t columns_;
     std::mt19937_64 rng_;
     std::vector<double> fixed_pattern_;
-    SceneParams params_;
+    const SceneParams params_;
     std::normal_distribution<double> read_noise_;
     std::vector<Target> targets_;
 
@@ -82,6 +83,6 @@ class SceneSimulator {
     /// \return true
     /// \return false
     ///
-    bool isTargetInFrame(double row, double col);
+    bool isTargetInFrame(const double row, const double col);
 };
 } // namespace opir

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <numbers>
 #include <numeric>
 #include <utility>
@@ -22,14 +23,22 @@ constexpr double kNoNoise = 1e-12;
 constexpr uint64_t kSeed = 42;
 
 /// A background of exactly zero with both noise sources silenced: whatever a
-/// pixel holds after this is the contribution of the targets alone.
+/// pixel holds after this is the contribution of the targets alone. dt of 1
+/// makes a frame index and a timestamp the same number, so tests that do not
+/// care about the frame-to-seconds mapping can ignore it.
 SceneParams quiet_params() {
     return SceneParams{.mean = 0.0,
                        .fpn_sigma = kNoNoise,
                        .read_sigma = kNoNoise,
                        .dc_level = 0.0,
-                       .row_gradient = 0.0};
+                       .row_gradient = 0.0,
+                       .dt = 1.0};
 }
+
+/// A frame big enough to hold a blob well clear of every edge.
+constexpr std::size_t kGrid = 96;
+constexpr std::size_t kCenterIndex = 48;
+constexpr double kCenter = 48.0;
 
 /// A rendered buffer plus the shape needed to address it by (row, column).
 struct Image {
@@ -46,12 +55,21 @@ struct Image {
 };
 
 Image render(SceneSimulator &simulator, std::size_t rows, std::size_t columns,
-             double t = 0.0) {
+             std::uint32_t frame = 0) {
     Image image{.rows = rows,
                 .columns = columns,
                 .pixels = std::vector<uint16_t>(rows * columns)};
-    simulator.render(t, image.pixels);
+    simulator.render(frame, image.pixels);
     return image;
+}
+
+/// The (row, column) of the brightest pixel in an image.
+std::pair<std::size_t, std::size_t> peak_of(const Image &image) {
+    const auto peak =
+        std::max_element(image.pixels.begin(), image.pixels.end());
+    const std::size_t index =
+        static_cast<std::size_t>(std::distance(image.pixels.begin(), peak));
+    return {index / image.columns, index % image.columns};
 }
 
 double mean_of(const std::vector<uint16_t> &values) {
@@ -162,8 +180,8 @@ TEST(SceneParamsFpnSigma, IsIdenticalInEveryFrame) {
     params.fpn_sigma = 50.0;
     SceneSimulator simulator(32, 32, params, kSeed);
 
-    const Image first = render(simulator, 32, 32, 0.0);
-    const Image second = render(simulator, 32, 32, 1.0);
+    const Image first = render(simulator, 32, 32, 0);
+    const Image second = render(simulator, 32, 32, 1);
 
     EXPECT_EQ(first.pixels, second.pixels);
 }
@@ -198,8 +216,8 @@ TEST(SceneParamsReadSigma, VariesFromFrameToFrame) {
     params.read_sigma = 30.0;
     SceneSimulator simulator(32, 32, params, kSeed);
 
-    const Image first = render(simulator, 32, 32, 0.0);
-    const Image second = render(simulator, 32, 32, 0.0);
+    const Image first = render(simulator, 32, 32, 0);
+    const Image second = render(simulator, 32, 32, 0);
 
     EXPECT_NE(first.pixels, second.pixels)
         << "read noise must be redrawn, even at the same timestamp";
@@ -216,10 +234,47 @@ TEST(SceneParamsReadSigma, SetsTheTemporalSpreadOfASinglePixel) {
     history.reserve(kFrames);
     for (std::size_t frame = 0; frame < kFrames; ++frame)
         history.push_back(
-            render(simulator, 8, 8, static_cast<double>(frame)).at(3, 5));
+            render(simulator, 8, 8, static_cast<std::uint32_t>(frame))
+                .at(3, 5));
 
     EXPECT_NEAR(mean_of(history), 10000.0, 5.0);
     EXPECT_NEAR(stddev_of(history), 30.0, 3.0);
+}
+
+/// dt converts a frame index into seconds. It only shows up through target
+/// motion, so these render one moving target and look at where its peak lands.
+Image moving_target_frame(double dt, std::uint32_t frame) {
+    SceneParams params = quiet_params();
+    params.dt = dt;
+    SceneSimulator simulator(kGrid, kGrid, params, kSeed);
+    simulator.add_target(Target{.r0 = 10.0,
+                                .c0 = kCenter,
+                                .r_rate = 4.0,
+                                .c_rate = 0.0,
+                                .amplitude = 5000.0,
+                                .sigma = 4.0});
+    return render(simulator, kGrid, kGrid, frame);
+}
+
+std::size_t moving_peak_row(double dt, std::uint32_t frame) {
+    return peak_of(moving_target_frame(dt, frame)).first;
+}
+
+TEST(SceneParamsDt, ScalesTheFrameIndexIntoSeconds) {
+    EXPECT_EQ(moving_peak_row(0.5, 0), 10u) << "frame 0 is always t = 0";
+    EXPECT_EQ(moving_peak_row(0.5, 8), 26u) << "10 + 4 * (8 * 0.5)";
+    EXPECT_EQ(moving_peak_row(0.25, 8), 18u) << "10 + 4 * (8 * 0.25)";
+}
+
+TEST(SceneParamsDt, GivesTheSameSceneForTheSameElapsedTime) {
+    // Frame 3 at dt = 1.0 and frame 6 at dt = 0.5 are both t = 3 seconds.
+    EXPECT_EQ(moving_target_frame(1.0, 3).pixels,
+              moving_target_frame(0.5, 6).pixels);
+}
+
+TEST(SceneParamsDt, FreezesTheSceneWhenZero) {
+    EXPECT_EQ(moving_peak_row(0.0, 0), 10u);
+    EXPECT_EQ(moving_peak_row(0.0, 1000), 10u) << "no dt means no motion";
 }
 
 /// The seed is what makes a run reproducible; it drives both noise sources.
@@ -240,19 +295,15 @@ TEST(SceneSimulatorSeed, ReproducesAFrameExactlyAndDiffersAcrossSeeds) {
 TEST(SceneSimulatorRender, RejectsABufferSmallerThanTheFrame) {
     SceneSimulator simulator(8, 8, quiet_params(), kSeed);
     std::vector<uint16_t> too_small(8 * 8 - 1);
-    EXPECT_THROW(simulator.render(0.0, too_small), Error);
+    EXPECT_THROW(simulator.render(0, too_small), Error);
 
     std::vector<uint16_t> exact(8 * 8);
-    EXPECT_NO_THROW(simulator.render(0.0, exact));
+    EXPECT_NO_THROW(simulator.render(0, exact));
 }
 
 // ---------------------------------------------------------------------------
 // Target rendering: shape, placement and energy of the Gaussian blob.
 // ---------------------------------------------------------------------------
-
-constexpr std::size_t kGrid = 96;
-constexpr double kCenter = 48.0;
-constexpr std::size_t kCenterIndex = 48;
 
 /// A centred, motionless target on an otherwise empty frame.
 Image render_centered_target(double amplitude, double sigma) {
@@ -289,18 +340,18 @@ TEST(TargetRender, PeaksAtTheTargetCenterWithTheTargetAmplitude) {
     const Image image = render_centered_target(5000.0, 4.0);
     constexpr std::size_t center = kCenterIndex;
 
-    const auto peak =
-        std::max_element(image.pixels.begin(), image.pixels.end());
-    const std::size_t index =
-        static_cast<std::size_t>(std::distance(image.pixels.begin(), peak));
+    const auto [peak_row, peak_column] = peak_of(image);
 
-    EXPECT_EQ(index / kGrid, center);
-    EXPECT_EQ(index % kGrid, center);
+    EXPECT_EQ(peak_row, center);
+    EXPECT_EQ(peak_column, center);
     EXPECT_EQ(image.at(center, center), 5000);
 }
 
 TEST(TargetRender, PeakFollowsTheTargetRatesOverTime) {
-    SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
+    // Frame 12 at dt = 0.5 is t = 6 seconds.
+    SceneParams params = quiet_params();
+    params.dt = 0.5;
+    SceneSimulator simulator(kGrid, kGrid, params, kSeed);
     simulator.add_target(Target{.r0 = 10.0,
                                 .c0 = 50.0,
                                 .r_rate = 5.0,
@@ -308,15 +359,11 @@ TEST(TargetRender, PeakFollowsTheTargetRatesOverTime) {
                                 .amplitude = 5000.0,
                                 .sigma = 4.0});
 
-    const Image image = render(simulator, kGrid, kGrid, 6.0);
+    const auto [peak_row, peak_column] =
+        peak_of(render(simulator, kGrid, kGrid, 12));
 
-    const auto peak =
-        std::max_element(image.pixels.begin(), image.pixels.end());
-    const std::size_t index =
-        static_cast<std::size_t>(std::distance(image.pixels.begin(), peak));
-
-    EXPECT_EQ(index / kGrid, 40u) << "row should be r0 + r_rate * t";
-    EXPECT_EQ(index % kGrid, 26u) << "column should be c0 + c_rate * t";
+    EXPECT_EQ(peak_row, 40u) << "row should be r0 + r_rate * frame * dt";
+    EXPECT_EQ(peak_column, 26u) << "column should be c0 + c_rate * frame * dt";
 }
 
 TEST(TargetRender, FallsOffMonotonicallyAwayFromThePeak) {
@@ -388,6 +435,169 @@ TEST(TargetRender, EnergyOfTwoTargetsAdds) {
         2.0 * std::numbers::pi * (2000.0 * 9.0 + 800.0 * 4.0);
 
     EXPECT_NEAR(image.sum(), expected, 0.01 * expected);
+}
+
+// ---------------------------------------------------------------------------
+// getTargetRecords: the per-frame truth table that pairs with the imagery.
+// ---------------------------------------------------------------------------
+
+/// One row past the last row (and column) of the frame.
+constexpr double kPastEdge = static_cast<double>(kGrid);
+
+Target static_target(double row, double column, double amplitude = 5000.0) {
+    return Target{.r0 = row,
+                  .c0 = column,
+                  .r_rate = 0.0,
+                  .c_rate = 0.0,
+                  .amplitude = amplitude,
+                  .sigma = 4.0};
+}
+
+/// A target starting near the bottom edge and walking off it after one frame.
+Target departing_target() {
+    return Target{.r0 = 90.0,
+                  .c0 = kCenter,
+                  .r_rate = 10.0,
+                  .c_rate = 0.0,
+                  .amplitude = 5000.0,
+                  .sigma = 4.0};
+}
+
+SceneSimulator simulator_with(double dt,
+                              std::initializer_list<Target> targets) {
+    SceneParams params = quiet_params();
+    params.dt = dt;
+    SceneSimulator simulator(kGrid, kGrid, params, kSeed);
+    for (const Target &target : targets)
+        simulator.add_target(target);
+    return simulator;
+}
+
+std::vector<std::uint32_t> ids_of(const std::vector<TruthRecord> &records) {
+    std::vector<std::uint32_t> ids;
+    for (const TruthRecord &record : records)
+        ids.push_back(record.target_id);
+    return ids;
+}
+
+TEST(TargetRecords, ThrowsWhenNoTargetHasBeenAdded) {
+    SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
+
+    EXPECT_THROW(simulator.getTargetRecords(0), Error);
+}
+
+TEST(TargetRecords, ReturnsOneRecordPerTargetIdentifiedByInsertionOrder) {
+    SceneSimulator simulator = simulator_with(1.0, {static_target(10.0, 20.0),
+                                                    static_target(30.0, 40.0),
+                                                    static_target(50.0, 60.0)});
+
+    const std::vector<TruthRecord> records = simulator.getTargetRecords(0);
+
+    ASSERT_EQ(records.size(), 3u);
+    EXPECT_EQ(ids_of(records), (std::vector<std::uint32_t>{0, 1, 2}));
+    EXPECT_DOUBLE_EQ(records[0].row, 10.0);
+    EXPECT_DOUBLE_EQ(records[0].col, 20.0);
+    EXPECT_DOUBLE_EQ(records[2].row, 50.0);
+    EXPECT_DOUBLE_EQ(records[2].col, 60.0);
+}
+
+TEST(TargetRecords, StampsEveryRecordWithTheRequestedFrameId) {
+    SceneSimulator simulator = simulator_with(
+        1.0, {static_target(10.0, 20.0), static_target(30.0, 40.0)});
+
+    for (const std::uint32_t frame : {0u, 1u, 7u, 1000u}) {
+        const std::vector<TruthRecord> records =
+            simulator.getTargetRecords(frame);
+
+        ASSERT_EQ(records.size(), 2u) << "at frame " << frame;
+        for (const TruthRecord &record : records)
+            EXPECT_EQ(record.frame_id, frame);
+    }
+}
+
+TEST(TargetRecords, CarriesTheTargetAmplitude) {
+    SceneSimulator simulator =
+        simulator_with(1.0, {static_target(10.0, 20.0, 1234.0),
+                             static_target(30.0, 40.0, 250.0)});
+
+    const std::vector<TruthRecord> records = simulator.getTargetRecords(0);
+
+    ASSERT_EQ(records.size(), 2u);
+    EXPECT_DOUBLE_EQ(records[0].amplitude, 1234.0);
+    EXPECT_DOUBLE_EQ(records[1].amplitude, 250.0);
+}
+
+TEST(TargetRecords, AdvancesThePositionWithFrameIdAndDt) {
+    // Frame 8 at dt = 0.25 is t = 2 seconds.
+    SceneSimulator simulator = simulator_with(0.25, {Target{.r0 = 20.0,
+                                                            .c0 = 30.0,
+                                                            .r_rate = 4.0,
+                                                            .c_rate = 8.0,
+                                                            .amplitude = 5000.0,
+                                                            .sigma = 4.0}});
+
+    const std::vector<TruthRecord> records = simulator.getTargetRecords(8);
+
+    ASSERT_EQ(records.size(), 1u);
+    EXPECT_DOUBLE_EQ(records[0].row, 28.0) << "r0 + r_rate * frame * dt";
+    EXPECT_DOUBLE_EQ(records[0].col, 46.0) << "c0 + c_rate * frame * dt";
+}
+
+/// The truth table is only worth anything if it names the pixel the target was
+/// actually drawn on, so this checks the two against each other on one frame.
+TEST(TargetRecords, AgreeWithWhereTheTargetIsRendered) {
+    SceneSimulator simulator = simulator_with(0.25, {Target{.r0 = 20.0,
+                                                            .c0 = 30.0,
+                                                            .r_rate = 4.0,
+                                                            .c_rate = 8.0,
+                                                            .amplitude = 5000.0,
+                                                            .sigma = 4.0}});
+
+    const std::vector<TruthRecord> records = simulator.getTargetRecords(8);
+    const auto [peak_row, peak_column] =
+        peak_of(render(simulator, kGrid, kGrid, 8));
+
+    ASSERT_EQ(records.size(), 1u);
+    EXPECT_EQ(peak_row, static_cast<std::size_t>(records[0].row));
+    EXPECT_EQ(peak_column, static_cast<std::size_t>(records[0].col));
+}
+
+TEST(TargetRecords, ReturnsAnEmptyTableOnceEveryTargetHasLeftTheFrame) {
+    // Note the asymmetry being pinned down here: a simulator holding no targets
+    // at all throws, while one whose targets have all walked off the frame
+    // returns an empty table.
+    SceneSimulator simulator = simulator_with(1.0, {departing_target()});
+
+    EXPECT_EQ(simulator.getTargetRecords(0).size(), 1u);
+    EXPECT_TRUE(simulator.getTargetRecords(1).empty())
+        << "row 100 is past the last row of a " << kGrid << "-row frame";
+}
+
+TEST(TargetRecords, KeepsTargetIdsStableWhenAnEarlierTargetLeaves) {
+    SceneSimulator simulator =
+        simulator_with(1.0, {static_target(10.0, 10.0), departing_target(),
+                             static_target(50.0, 50.0)});
+
+    EXPECT_EQ(ids_of(simulator.getTargetRecords(0)),
+              (std::vector<std::uint32_t>{0, 1, 2}));
+    EXPECT_EQ(ids_of(simulator.getTargetRecords(1)),
+              (std::vector<std::uint32_t>{0, 2}))
+        << "an id must stay the insertion index, not the row of the table";
+}
+
+TEST(TargetRecords, IncludesTheFirstPixelAndExcludesTheOneJustPastTheLast) {
+    SceneSimulator simulator =
+        simulator_with(1.0, {
+                                static_target(0.0, 0.0),
+                                static_target(kPastEdge - 0.5, kPastEdge - 0.5),
+                                static_target(kPastEdge, 0.0),
+                                static_target(0.0, kPastEdge),
+                                static_target(-0.5, 0.0),
+                            });
+
+    EXPECT_EQ(ids_of(simulator.getTargetRecords(0)),
+              (std::vector<std::uint32_t>{0, 1}))
+        << "the frame is inclusive of 0 and exclusive of rows_ / columns_";
 }
 
 } // namespace

@@ -24,7 +24,7 @@ using Pixel = std::uint16_t;
 
 constexpr size_t kRows = 100;
 constexpr size_t kColumns = 100;
-constexpr int kFrames = 10;
+constexpr std::uint32_t kFrames = 10;
 
 constexpr uint64_t kSeed = 42;
 
@@ -34,7 +34,8 @@ constexpr SceneParams params = {.mean = 0.0,
                                 .fpn_sigma = 15.0,
                                 .read_sigma = 8.0,
                                 .dc_level = 10000.0,
-                                .row_gradient = 3.0};
+                                .row_gradient = 3.0,
+                                .dt = 0.3};
 
 int run() {
     auto sceneFile = std::ofstream(SCENE_DATA_FILE, std::ios::binary);
@@ -54,14 +55,13 @@ int run() {
 
     std::vector<Pixel> buffer(kRows * kColumns);
 
-    for (int i = 0; i < kFrames; i++) {
-        double t = i * 0.3;
-        simulator.render(t, buffer);
+    for (std::uint32_t frame = 0; frame < kFrames; frame++) {
+        simulator.render(frame, buffer);
         sceneFile.write(reinterpret_cast<const char *>(buffer.data()),
                         static_cast<std::streamsize>(buffer.size()) *
                             static_cast<std::streamsize>(sizeof(Pixel)));
 
-        for (auto &record : simulator.getTargetRecords(t)) {
+        for (const auto &record : simulator.getTargetRecords(frame)) {
             truthFile << std::format("{}, {}, {}, {}, {}\n", record.frame_id,
                                      record.target_id, record.row, record.col,
                                      record.amplitude);

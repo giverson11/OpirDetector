@@ -34,12 +34,12 @@ SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
 
 void SceneSimulator::add_target(Target target) { targets_.push_back(target); }
 
-void SceneSimulator::render(double t, std::span<uint16_t> out) {
+void SceneSimulator::render(u_int32_t frame, std::span<uint16_t> out) {
     if (out.size() < rows_ * columns_)
         throw Error(std::format(
             "SceneSimulator needs a buffer of size of at least {} * {}", rows_,
             columns_));
-
+    double t = frame * params_.dt;
     for (std::size_t r = 0; r < rows_; ++r) {
         for (std::size_t c = 0; c < columns_; ++c) {
             double v = params_.dc_level +
@@ -59,12 +59,13 @@ void SceneSimulator::render(double t, std::span<uint16_t> out) {
     }
 }
 
-std::vector<TruthRecord> SceneSimulator::getTargetRecords(double t) {
+std::vector<TruthRecord> SceneSimulator::getTargetRecords(u_int32_t frame) {
     if (targets_.empty()) {
         throw Error("Simulator has no targets assigned.");
     }
 
     std::vector<TruthRecord> truths;
+    double t = frame * params_.dt;
 
     for (size_t i = 0; i < targets_.size(); i++) {
         Target target = targets_[i];
@@ -74,7 +75,7 @@ std::vector<TruthRecord> SceneSimulator::getTargetRecords(double t) {
         if (!isTargetInFrame(row, col))
             continue;
 
-        truths.push_back(TruthRecord{.frame_id = quantize(t),
+        truths.push_back(TruthRecord{.frame_id = frame,
                                      .target_id = static_cast<u_int32_t>(i),
                                      .row = row,
                                      .col = col,
@@ -83,7 +84,7 @@ std::vector<TruthRecord> SceneSimulator::getTargetRecords(double t) {
     return truths;
 }
 
-bool SceneSimulator::isTargetInFrame(double row, double col) {
+bool SceneSimulator::isTargetInFrame(const double row, const double col) {
     return (row >= 0 && row < static_cast<double>(rows_)) &&
            (col >= 0 && col < static_cast<double>(columns_));
 }
