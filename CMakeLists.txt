@@ -47,12 +47,17 @@ scitect_set_warnings(scitec_sim)
 
 
 add_executable(scitec_opir_detection src/opir/main.cpp)
-target_link_libraries(scitec_opir_detection PRIVATE scitec_sim)
-scitect_set_warnings(scitec_opir_detection)
 
 add_executable(scene_gen src/sim/main.cpp)
 target_link_libraries(scene_gen PRIVATE scitec_sim)
 scitect_set_warnings(scene_gen)
+
+target_compile_definitions(scene_gen PRIVATE 
+    SCENE_DATA_FILE="${CMAKE_CURRENT_SOURCE_DIR}/Scene.bin"
+)
+target_compile_definitions(scene_gen PRIVATE 
+    TRUTH_CSV_FILE="${CMAKE_CURRENT_SOURCE_DIR}/Truth.csv"
+)
 
 option(SCITEC_BUILD_TESTS "Build the unit tests" ON)
 
