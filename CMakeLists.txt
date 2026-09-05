@@ -29,7 +29,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 function(scitect_set_warnings target)
-    target_compile_options(${target} PRIVATE 
+    target_compile_options(${target} PRIVATE
         $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow>
     )
 endfunction()
@@ -38,6 +38,14 @@ add_library(scitec_core INTERFACE)
 target_include_directories(scitec_core INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
+
+add_library(scitec_frame
+src/frame/FrameReader.cpp
+src/frame/FrameWriter.cpp
+)
+
+target_link_libraries(scitec_frame PUBLIC scitec_core)
+scitect_set_warnings(scitec_frame)
 
 add_library(scitec_sim
     src/sim/SceneSimulator.cpp
@@ -52,10 +60,10 @@ add_executable(scene_gen src/sim/main.cpp)
 target_link_libraries(scene_gen PRIVATE scitec_sim)
 scitect_set_warnings(scene_gen)
 
-target_compile_definitions(scene_gen PRIVATE 
+target_compile_definitions(scene_gen PRIVATE
     SCENE_DATA_FILE="${CMAKE_CURRENT_SOURCE_DIR}/Scene.bin"
 )
-target_compile_definitions(scene_gen PRIVATE 
+target_compile_definitions(scene_gen PRIVATE
     TRUTH_CSV_FILE="${CMAKE_CURRENT_SOURCE_DIR}/Truth.csv"
 )
 

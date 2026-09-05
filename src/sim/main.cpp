@@ -1,13 +1,13 @@
-#include "core/Error.hpp"
-#include "sim/SceneSimulator.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <format>
 #include <fstream>
-#include <memory>
 #include <print>
-#include <vector>
+#include "core/Error.hpp"
+#include "core/Types.hpp"
+#include "sim/SceneSimulator.hpp"
+
 
 #ifndef SCENE_DATA_FILE
 #error "Scene file must be defined by the build system"
@@ -20,11 +20,10 @@
 namespace opir {
 namespace {
 
-using Pixel = std::uint16_t;
 
 constexpr size_t kRows = 100;
 constexpr size_t kColumns = 100;
-constexpr std::uint32_t kFrames = 10;
+constexpr FrameId kLastFrameId = 10;
 
 constexpr uint64_t kSeed = 42;
 
@@ -55,7 +54,7 @@ int run() {
 
     std::vector<Pixel> buffer(kRows * kColumns);
 
-    for (std::uint32_t frame = 0; frame < kFrames; frame++) {
+    for (FrameId frame = 0; frame < kLastFrameId; frame++) {
         simulator.render(frame, buffer);
         sceneFile.write(reinterpret_cast<const char *>(buffer.data()),
                         static_cast<std::streamsize>(buffer.size()) *
@@ -68,7 +67,7 @@ int run() {
         }
     }
 
-    std::println("wrote {} frames of {}x{} to {}", kFrames, kRows, kColumns,
+    std::println("wrote {} frames of {}x{} to {}", kLastFrameId, kRows, kColumns,
                  SCENE_DATA_FILE);
     return 0;
 }

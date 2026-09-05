@@ -1,5 +1,3 @@
-#include "sim/SceneSimulator.hpp"
-#include "core/Error.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -8,6 +6,9 @@
 #include <random>
 #include <sys/types.h>
 #include <vector>
+#include "sim/SceneSimulator.hpp"
+#include "core/Error.hpp"
+#include "core/Types.hpp"
 
 namespace opir {
 
@@ -16,8 +17,8 @@ namespace {
 constexpr double kMaxSaturation =
     static_cast<double>(std::numeric_limits<uint16_t>::max());
 
-constexpr uint16_t quantize(double v) {
-    return static_cast<uint16_t>(
+constexpr Pixel quantize(double v) {
+    return static_cast<Pixel>(
         std::clamp(std::round(v), 0.0, kMaxSaturation));
 }
 } // namespace
@@ -34,7 +35,7 @@ SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
 
 void SceneSimulator::add_target(Target target) { targets_.push_back(target); }
 
-void SceneSimulator::render(u_int32_t frame, std::span<uint16_t> out) {
+void SceneSimulator::render(u_int32_t frame, std::span<Pixel> out) {
     if (out.size() < rows_ * columns_)
         throw Error(std::format(
             "SceneSimulator needs a buffer of size of at least {} * {}", rows_,
@@ -59,7 +60,7 @@ void SceneSimulator::render(u_int32_t frame, std::span<uint16_t> out) {
     }
 }
 
-std::vector<TruthRecord> SceneSimulator::getTargetRecords(u_int32_t frame) {
+std::vector<TruthRecord> SceneSimulator::getTargetRecords(FrameId frame) {
     if (targets_.empty()) {
         throw Error("Simulator has no targets assigned.");
     }
@@ -76,7 +77,7 @@ std::vector<TruthRecord> SceneSimulator::getTargetRecords(u_int32_t frame) {
             continue;
 
         truths.push_back(TruthRecord{.frame_id = frame,
-                                     .target_id = static_cast<u_int32_t>(i),
+                                     .target_id = static_cast<TargetId>(i),
                                      .row = row,
                                      .col = col,
                                      .amplitude = target.amplitude});

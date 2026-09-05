@@ -1,9 +1,12 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdint>
 #include <random>
 #include <span>
 #include <sys/types.h>
 #include <vector>
+#include "core/Types.hpp"
 
 namespace opir {
 struct Target {
@@ -22,8 +25,8 @@ struct SceneParams {
 };
 
 struct TruthRecord {
-    u_int32_t frame_id;
-    u_int32_t target_id;
+    FrameId frame_id;
+    TargetId target_id;
     double row, col;
     double amplitude;
 };
@@ -56,7 +59,7 @@ class SceneSimulator {
     /// \param t
     /// \param out
     ///
-    void render(u_int32_t frame, std::span<uint16_t> out);
+    void render(FrameId frame, std::span<Pixel> out);
 
     ///
     ///
@@ -64,7 +67,7 @@ class SceneSimulator {
     /// \param t
     /// \return std::vector<TruthRecord>
     ///
-    std::vector<TruthRecord> getTargetRecords(u_int32_t frame);
+    std::vector<TruthRecord> getTargetRecords(FrameId frame);
 
   private:
     const size_t rows_;
