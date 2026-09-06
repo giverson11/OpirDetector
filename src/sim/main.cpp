@@ -1,13 +1,14 @@
+#include "core/Error.hpp"
+#include "core/Types.hpp"
+#include "frame/FrameWriter.hpp"
+#include "sim/SceneSimulator.hpp"
+#include "sim/TruthWriter.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <format>
 #include <fstream>
 #include <print>
-#include "core/Error.hpp"
-#include "core/Types.hpp"
-#include "sim/SceneSimulator.hpp"
-
 
 #ifndef SCENE_DATA_FILE
 #error "Scene file must be defined by the build system"
@@ -19,7 +20,6 @@
 
 namespace opir {
 namespace {
-
 
 constexpr size_t kRows = 100;
 constexpr size_t kColumns = 100;
@@ -37,11 +37,8 @@ constexpr SceneParams params = {.mean = 0.0,
                                 .dt = 0.3};
 
 int run() {
-    auto sceneFile = std::ofstream(SCENE_DATA_FILE, std::ios::binary);
-    auto truthFile = std::ofstream(TRUTH_CSV_FILE);
-    if (!sceneFile)
-        throw Error(
-            std::format("could not open {} for writing", SCENE_DATA_FILE));
+    FrameWriter sceneWriter{SCENE_DATA_FILE, kRows, kColumns};
+    TruthWriter truthWriter = TruthWriter{TRUTH_CSV_FILE};
 
     SceneSimulator simulator(kRows, kColumns, params, kSeed);
 
@@ -56,19 +53,13 @@ int run() {
 
     for (FrameId frame = 0; frame < kLastFrameId; frame++) {
         simulator.render(frame, buffer);
-        sceneFile.write(reinterpret_cast<const char *>(buffer.data()),
-                        static_cast<std::streamsize>(buffer.size()) *
-                            static_cast<std::streamsize>(sizeof(Pixel)));
+        sceneWriter.write_frame(buffer);
 
-        for (const auto &record : simulator.getTargetRecords(frame)) {
-            truthFile << std::format("{}, {}, {}, {}, {}\n", record.frame_id,
-                                     record.target_id, record.row, record.col,
-                                     record.amplitude);
-        }
+        truthWriter.write_truth(simulator.getTargetRecords(frame));
     }
 
-    std::println("wrote {} frames of {}x{} to {}", kLastFrameId, kRows, kColumns,
-                 SCENE_DATA_FILE);
+    std::println("wrote {} frames of {}x{} to {}", kLastFrameId, kRows,
+                 kColumns, SCENE_DATA_FILE);
     return 0;
 }
 } // namespace

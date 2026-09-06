@@ -1,3 +1,6 @@
+#include "sim/SceneSimulator.hpp"
+#include "core/Error.hpp"
+#include "core/Types.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -6,9 +9,6 @@
 #include <random>
 #include <sys/types.h>
 #include <vector>
-#include "sim/SceneSimulator.hpp"
-#include "core/Error.hpp"
-#include "core/Types.hpp"
 
 namespace opir {
 
@@ -18,15 +18,14 @@ constexpr double kMaxSaturation =
     static_cast<double>(std::numeric_limits<uint16_t>::max());
 
 constexpr Pixel quantize(double v) {
-    return static_cast<Pixel>(
-        std::clamp(std::round(v), 0.0, kMaxSaturation));
+    return static_cast<Pixel>(std::clamp(std::round(v), 0.0, kMaxSaturation));
 }
 } // namespace
 
 SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
                                SceneParams params, uint64_t seed)
-    : rows_{rows}, columns_{columns}, rng_{seed},
-      fixed_pattern_(rows * columns), params_{params},
+    : rows_{rows}, columns_{columns}, params_{params}, rng_{seed},
+      fixed_pattern_(rows * columns),
       read_noise_{params.mean, params.read_sigma} {
 
     std::normal_distribution<double> fpn{params.mean, params.fpn_sigma};

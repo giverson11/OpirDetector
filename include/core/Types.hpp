@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <mdspan>
 
-namespace opir{
+namespace opir {
 /// One detector sample: 16-bit unsigned counts, as the sensor delivers them.
 using Pixel = std::uint16_t;
 
@@ -12,4 +13,6 @@ using FrameId = std::uint32_t;
 /// Identifies a target across frames.
 using TargetId = std::uint32_t;
 
-}
+using FrameSpan = std::mdspan<const Pixel, std::dextents<std::size_t, 2>>;
+
+} // namespace opir

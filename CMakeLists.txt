@@ -49,6 +49,7 @@ scitect_set_warnings(scitec_frame)
 
 add_library(scitec_sim
     src/sim/SceneSimulator.cpp
+    src/sim/TruthWriter.cpp
 )
 target_link_libraries(scitec_sim PUBLIC scitec_core)
 scitect_set_warnings(scitec_sim)
@@ -57,7 +58,7 @@ scitect_set_warnings(scitec_sim)
 add_executable(scitec_opir_detection src/opir/main.cpp)
 
 add_executable(scene_gen src/sim/main.cpp)
-target_link_libraries(scene_gen PRIVATE scitec_sim)
+target_link_libraries(scene_gen PRIVATE scitec_sim scitec_frame)
 scitect_set_warnings(scene_gen)
 
 target_compile_definitions(scene_gen PRIVATE

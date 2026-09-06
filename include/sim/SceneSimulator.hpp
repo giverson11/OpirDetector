@@ -32,6 +32,17 @@ struct TruthRecord {
 };
 
 class SceneSimulator {
+
+    const size_t rows_;
+    const size_t columns_;
+    const SceneParams params_;
+
+    std::mt19937_64 rng_;
+    std::vector<double> fixed_pattern_;
+    std::normal_distribution<double> read_noise_;
+
+    std::vector<Target> targets_;
+
   public:
     ///
     ///  Construct a new Scene Simulator object
@@ -70,13 +81,6 @@ class SceneSimulator {
     std::vector<TruthRecord> getTargetRecords(FrameId frame);
 
   private:
-    const size_t rows_;
-    const size_t columns_;
-    std::mt19937_64 rng_;
-    std::vector<double> fixed_pattern_;
-    const SceneParams params_;
-    std::normal_distribution<double> read_noise_;
-    std::vector<Target> targets_;
 
     ///
     ///
