@@ -1,12 +1,12 @@
 #pragma once
 
+#include "core/Types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <random>
 #include <span>
 #include <sys/types.h>
 #include <vector>
-#include "core/Types.hpp"
 
 namespace opir {
 struct Target {
@@ -81,7 +81,6 @@ class SceneSimulator {
     std::vector<TruthRecord> getTargetRecords(FrameId frame);
 
   private:
-
     ///
     ///
     ///
