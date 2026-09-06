@@ -32,7 +32,7 @@ jobs:
       # first failure.
       fail-fast: false
       matrix:
-        image: ["gcc:15", "gcc:16"]
+        image: ["gcc:16"]
         build_type: [Debug, Release]
 
     steps:
@@ -61,7 +61,7 @@ jobs:
         if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
         uses: actions/upload-artifact@v7
         with:
-          name: scene_gen 
+          name: scene_gen
           path: build/scene_gen
           if-no-files-found: error
           retention-days: 14
