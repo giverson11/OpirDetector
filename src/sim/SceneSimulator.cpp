@@ -15,7 +15,7 @@ namespace opir {
 namespace {
 
 constexpr double kMaxSaturation =
-    static_cast<double>(std::numeric_limits<uint16_t>::max());
+    static_cast<double>(std::numeric_limits<Pixel>::max());
 
 constexpr Pixel quantize(double v) {
     return static_cast<Pixel>(std::clamp(std::round(v), 0.0, kMaxSaturation));
@@ -34,7 +34,7 @@ SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
 
 void SceneSimulator::add_target(Target target) { targets_.push_back(target); }
 
-void SceneSimulator::render(u_int32_t frame, std::span<Pixel> out) {
+void SceneSimulator::render(FrameId frame, std::span<Pixel> out) {
     if (out.size() < rows_ * columns_)
         throw Error(std::format(
             "SceneSimulator needs a buffer of size of at least {} * {}", rows_,

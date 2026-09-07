@@ -53,7 +53,7 @@ int run() {
 
     for (FrameId frame = 0; frame < kLastFrameId; frame++) {
         simulator.render(frame, buffer);
-        sceneWriter.write_frame(buffer);
+        sceneWriter.write_frame(frame, frame * params.dt, buffer);
 
         truthWriter.write_truth(simulator.getTargetRecords(frame));
     }
