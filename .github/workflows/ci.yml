@@ -20,19 +20,26 @@ permissions:
 
 jobs:
   build-and-test:
-    name: ${{ matrix.image }} / ${{ matrix.build_type }}
+    name: ${{ matrix.toolchain.name }} / ${{ matrix.build_type }}
     runs-on: ubuntu-latest
     # CMakeLists.txt rejects anything older than GCC 15 and the hosted runner
     # image does not ship one, so the job runs inside an official GCC container.
-    # gcc:15 is the floor the project claims to support; gcc:16 is what this is
-    # developed on.
-    container: ${{ matrix.image }}
+    # gcc:16 is what this is developed on.
+    #
+    # Clang builds in the same container rather than an LLVM one: those ship
+    # libc++ but no libstdc++ headers, and this pairs Clang with GCC 16's
+    # libstdc++ -- the combination developed against locally. Building both
+    # front ends is worth the minutes because they disagree about what is
+    # legal; GCC quietly accepts some ill-formed code that Clang rejects.
+    container: gcc:16
     strategy:
       # Let every combination report, rather than cancelling the rest at the
       # first failure.
       fail-fast: false
       matrix:
-        image: ["gcc:16"]
+        toolchain:
+          - { name: gcc-16, cxx: g++ }
+          - { name: clang-22, cxx: clang++-22 }
         build_type: [Debug, Release]
 
     steps:
@@ -44,10 +51,28 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends cmake ninja-build
 
+      # apt.llvm.org keys its repositories by Debian release, so the codename is
+      # read from the image rather than hard-coded: if the GCC image ever
+      # rebases onto a newer Debian this keeps working.
+      - name: Install Clang
+        if: matrix.toolchain.name == 'clang-22'
+        run: |
+          apt-get install -y --no-install-recommends wget gnupg ca-certificates
+          . /etc/os-release
+          wget -qO /etc/apt/trusted.gpg.d/llvm.asc https://apt.llvm.org/llvm-snapshot.gpg.key
+          echo "deb https://apt.llvm.org/$VERSION_CODENAME llvm-toolchain-$VERSION_CODENAME-22 main" \
+            > /etc/apt/sources.list.d/llvm.list
+          apt-get update
+          apt-get install -y --no-install-recommends clang-22
+          clang++-22 --version
+
       # GoogleTest is not installed in the container, so tests/CMakeLists.txt
       # falls back to fetching a pinned copy from upstream.
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.toolchain.cxx }}
 
       - name: Build
         run: cmake --build build --parallel
@@ -58,7 +83,7 @@ jobs:
       # The delivery half: a green Release build leaves a downloadable binary
       # attached to the run, kept for 14 days.
       - name: Upload the release scene binary
-        if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
+        if: matrix.toolchain.name == 'clang-22' && matrix.build_type == 'Release'
         uses: actions/upload-artifact@v7
         with:
           name: scene_gen
@@ -67,7 +92,7 @@ jobs:
           retention-days: 14
 
       - name: Upload the release opir binary
-        if: matrix.image == 'gcc:16' && matrix.build_type == 'Release'
+        if: matrix.toolchain.name == 'clang-22' && matrix.build_type == 'Release'
         uses: actions/upload-artifact@v7
         with:
           name: scitec_opir_detection

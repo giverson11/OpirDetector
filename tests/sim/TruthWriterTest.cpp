@@ -47,7 +47,7 @@ std::vector<std::string> lines_of(const test::TempFile &file) {
 // ---------------------------------------------------------------------------
 
 TEST(TruthWriterConstruction, ThrowsWhenThePathCannotBeOpened) {
-    EXPECT_THROW(TruthWriter(test::unopenable_path()), Error);
+    EXPECT_THROW(TruthWriter{test::unopenable_path()}, Error);
 }
 
 TEST(TruthWriterConstruction, CreatesTheFileEmptyAndTruncatesAnExistingOne) {
