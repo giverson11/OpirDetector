@@ -187,3 +187,4 @@ CMakeUserPresets.json
 .claude
 
 /build
+/build-clang

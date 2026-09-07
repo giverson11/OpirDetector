@@ -1,5 +1,0 @@
-if(EXISTS "/home/garretti/Documents/C++Practice/PracticeScitecProject/build-clang/tests/scitec_sim_tests_e3b0c442_tests.cmake")
-  include("/home/garretti/Documents/C++Practice/PracticeScitecProject/build-clang/tests/scitec_sim_tests_e3b0c442_tests.cmake")
-else()
-  add_test(scitec_sim_tests_NOT_BUILT scitec_sim_tests_NOT_BUILT)
-endif()
