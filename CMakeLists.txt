@@ -39,6 +39,14 @@ target_include_directories(scitec_core INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+add_library(scitec_detect
+src/detect/Cfar.cpp
+src/detect/Cluster.cpp
+)
+
+target_link_libraries(scitec_detect PUBLIC scitec_core)
+scitect_set_warnings(scitec_detect)
+
 add_library(scitec_frame
 src/frame/FrameReader.cpp
 src/frame/FrameWriter.cpp
