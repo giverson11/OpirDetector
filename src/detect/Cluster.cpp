@@ -2,11 +2,45 @@
 #include <cstddef>
 
 namespace opir {
+int label_clusters(std::span<const uint8_t> mask, int rows, int cols,
+                   std::span<int32_t> labels, std::vector<int> &stack) {
+    std::ranges::fill(labels, 0);
+    int next = 0;
+
+    for (size_t i = 0; i < rows * cols; ++i) {
+        if (!mask[i] || labels[i] != 0)
+            continue;
+
+        ++next;
+        stack.clear();
+        stack.push_back(static_cast<int>(i));
+        labels[i] = next;
+
+        while (!stack.empty()) {
+            const int idx = stack.back();
+            stack.pop_back();
+            const int r = idx / cols, c = idx % cols;
+
+            for (int dr = -1; dr <= 1; ++dr)
+                for (int dc = -1; dc <= 1; ++dc) {
+                    const int nr = r + dr, nc = c + dc;
+                    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols)
+                        continue;
+                    const size_t n = static_cast<size_t>(nr * cols + nc);
+                    if (!mask[n] || labels[n] != 0)
+                        continue;
+                    labels[n] = next;
+                    stack.push_back(static_cast<int>(n));
+                }
+        }
+    }
+    return next;
+}
 
 std::vector<Detection>
 centroid_clusters(FrameSpan px, std::span<const int32_t> labels,
                   size_t n_labels, std::span<const float> bg,
-                  const CfarParams &p, uint32_t frame_id) {
+                  const ClusterParams &p, uint32_t frame_id) {
     struct Accum {
         double w = 0, wr = 0, wc = 0, peak = 0;
         int count = 0;
