@@ -5,6 +5,7 @@
 
 #include "support/TempFile.hpp"
 
+#include <cstdint>
 #include <gtest/gtest.h>
 
 #include <bit>
@@ -127,7 +128,8 @@ TEST(FrameWriterWriteFrame, StampsTheHeaderWithMagicVersionShapeIdAndTime) {
     EXPECT_EQ(header.rows, kRows);
     EXPECT_EQ(header.cols, kColumns);
     EXPECT_EQ(header.frame_id, 7u);
-    EXPECT_EQ(header.timestamp_us, 2'500'000u) << "seconds in, microseconds out";
+    EXPECT_EQ(header.timestamp_us, 2'500'000u)
+        << "seconds in, microseconds out";
     EXPECT_EQ(header.reserved, 0u) << "reserved bytes must not carry garbage";
     EXPECT_EQ(header.reserved2, 0u);
 }
@@ -140,9 +142,9 @@ TEST(FrameWriterWriteFrame, AppendsFramesBackToBackWithNothingBetweenThem) {
     {
         FrameWriter writer{file.path(), kRows, kColumns};
         for (std::size_t f = 0; f < kFrames; ++f)
-            writer.write_frame(static_cast<FrameId>(f), 0.5 * static_cast<double>(f),
-                               ramp(kPixelsPerFrame,
-                                    static_cast<Pixel>(100 * (f + 1))));
+            writer.write_frame(
+                static_cast<FrameId>(f), 0.5 * static_cast<double>(f),
+                ramp(kPixelsPerFrame, static_cast<Pixel>(100 * (f + 1))));
     }
 
     ASSERT_EQ(file.size(), kFrames * kFrameBytes);

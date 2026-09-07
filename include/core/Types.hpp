@@ -13,6 +13,7 @@ using FrameId = std::uint32_t;
 /// Identifies a target across frames.
 using TargetId = std::uint32_t;
 
+///  A span to navigate a frames contents by row and col
 using FrameSpan = std::mdspan<const Pixel, std::dextents<std::size_t, 2>>;
 
 } // namespace opir

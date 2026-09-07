@@ -9,12 +9,24 @@
 #include <vector>
 
 namespace opir {
+///
+/// Moving target added to simulation. Its row and col location per frame is
+/// dependent on the time, its starting row and column, and the rate of row/col
+/// change
+///
+///
 struct Target {
     double r0, c0, r_rate, c_rate, amplitude, sigma;
     double row(double t) const { return r0 + r_rate * t; }
     double col(double t) const { return c0 + c_rate * t; }
 };
 
+///
+/// Parameters to define the simulation.
+/// fpn_sigma is the standard deviation of the gaussian noise consistent across
+/// all frames a simulation produces. read_sigma is the standard deviation of
+/// the gaussian noise that is generated per frame
+///
 struct SceneParams {
     double mean;
     double fpn_sigma;
@@ -24,6 +36,11 @@ struct SceneParams {
     double dt;
 };
 
+///
+/// A record of a true position of a target at a given frame. Target_id is
+/// derived from its current index.
+///
+///
 struct TruthRecord {
     FrameId frame_id;
     TargetId target_id;

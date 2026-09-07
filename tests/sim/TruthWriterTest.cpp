@@ -155,8 +155,8 @@ TEST(TruthWriterWriteTruth, WritesNothingForAnEmptySpan) {
         writer.write_truth(std::vector{record(2, 0, 3.0, 3.0, 100.0)});
     }
 
-    EXPECT_EQ(lines_of(file), (std::vector<std::string>{"0, 0, 1, 1, 100",
-                                                        "2, 0, 3, 3, 100"}));
+    EXPECT_EQ(lines_of(file),
+              (std::vector<std::string>{"0, 0, 1, 1, 100", "2, 0, 3, 3, 100"}));
 }
 
 /// Deciding which targets belong in the truth table is the simulator's job.

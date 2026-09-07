@@ -12,8 +12,8 @@
 namespace opir {
 namespace {
 
-std::expected<void, ParseError> validate(const FrameHeader &header,
-                                         size_t rows, size_t cols) {
+std::expected<void, ParseError> validate(const FrameHeader &header, size_t rows,
+                                         size_t cols) {
     if (header.magic != kFrameMagic) {
         return std::unexpected(ParseError::BadMagic);
     }
@@ -39,8 +39,8 @@ FrameReader::FrameReader(std::filesystem::path path)
 
 std::expected<FrameView, ParseError> FrameReader::next() {
     FrameHeader header;
-    if (const auto got = read_exact(in_, std::as_writable_bytes(
-                                             std::span{&header, 1}));
+    if (const auto got =
+            read_exact(in_, std::as_writable_bytes(std::span{&header, 1}));
         !got) {
         return std::unexpected(got.error());
     }

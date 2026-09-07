@@ -34,9 +34,9 @@ std::vector<Pixel> ramp(std::size_t count, Pixel first = 1) {
 void write_frames(const test::TempFile &file, std::size_t count) {
     FrameWriter writer{file.path(), kRows, kColumns};
     for (std::size_t f = 0; f < count; ++f)
-        writer.write_frame(static_cast<FrameId>(f),
-                           0.5 * static_cast<double>(f),
-                           ramp(kPixelsPerFrame, static_cast<Pixel>(100 * (f + 1))));
+        writer.write_frame(
+            static_cast<FrameId>(f), 0.5 * static_cast<double>(f),
+            ramp(kPixelsPerFrame, static_cast<Pixel>(100 * (f + 1))));
 }
 
 /// Writes one frame from a header the test has hand-built, so that a header the
@@ -82,8 +82,8 @@ TEST(FrameReaderNext, RoundTripsWhatTheWriterWrote) {
     FrameReader reader{file.path()};
     for (std::size_t f = 0; f < 3; ++f) {
         const auto frame = reader.next();
-        ASSERT_TRUE(frame.has_value()) << "frame " << f << ": "
-                                       << to_string(frame.error());
+        ASSERT_TRUE(frame.has_value())
+            << "frame " << f << ": " << to_string(frame.error());
         EXPECT_EQ(frame->id, f);
         EXPECT_NEAR(frame->t, 0.5 * static_cast<double>(f), 1e-9);
         ASSERT_EQ(frame->px.extent(0), kRows);
@@ -178,8 +178,8 @@ TEST(FrameReaderNext, RejectsAHeaderItDoesNotRecognise) {
 
     FrameHeader bad_version = good_header();
     bad_version.version = kFrameVersion + 1;
-    cases.push_back({"future version", bad_version,
-                     ParseError::UnsupportedVersion});
+    cases.push_back(
+        {"future version", bad_version, ParseError::UnsupportedVersion});
 
     FrameHeader zero_rows = good_header();
     zero_rows.rows = 0;

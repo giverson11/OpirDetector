@@ -66,6 +66,16 @@ jobs:
           apt-get install -y --no-install-recommends clang-22
           clang++-22 --version
 
+      # The official GCC image builds GCC into /usr/local, which is not one of
+      # the prefixes Clang scans for a GCC installation. Left alone Clang finds
+      # Debian's own libstdc++ instead -- GCC 14, which predates <mdspan> -- and
+      # fails on an include rather than on anything to do with Clang itself.
+      # The flag validates the path, so a wrong one errors instead of silently
+      # falling back again.
+      - name: Point Clang at the container's libstdc++
+        if: matrix.toolchain.name == 'clang-22'
+        run: echo "CXXFLAGS=--gcc-install-dir=$(dirname $(g++ -print-libgcc-file-name))" >> "$GITHUB_ENV"
+
       # GoogleTest is not installed in the container, so tests/CMakeLists.txt
       # falls back to fetching a pinned copy from upstream.
       - name: Configure

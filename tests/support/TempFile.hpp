@@ -27,9 +27,9 @@ class TempFile {
         // Seeded once per process so two test binaries running side by side in
         // the same temp directory cannot collide.
         static std::atomic<unsigned long long> counter{std::random_device{}()};
-        path_ = std::filesystem::temp_directory_path() /
-                ("opir_test_" + std::to_string(counter++) +
-                 std::string(extension));
+        path_ =
+            std::filesystem::temp_directory_path() /
+            ("opir_test_" + std::to_string(counter++) + std::string(extension));
         std::error_code ec;
         std::filesystem::remove(path_, ec);
     }
