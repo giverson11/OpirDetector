@@ -157,14 +157,14 @@ TEST(LabelClusters, GivesTheSameAnswerWhenTheScratchStackIsReused) {
 struct Scene {
     Mask mask;
     std::vector<Pixel> px;
-    std::vector<float> bg;
-    std::vector<float> sg;
+    std::vector<double> bg;
+    std::vector<double> sg;
 
     static Scene from(const Mask &m, Pixel background, Pixel signal,
-                      float sigma = 1.0f) {
+                      double sigma = 1.0) {
         Scene s{m, std::vector<Pixel>(m.size(), background),
-                std::vector<float>(m.size(), static_cast<float>(background)),
-                std::vector<float>(m.size(), sigma)};
+                std::vector<double>(m.size(), static_cast<double>(background)),
+                std::vector<double>(m.size(), sigma)};
         for (std::size_t i = 0; i < m.size(); ++i)
             if (m.bits[i])
                 s.px[i] = static_cast<Pixel>(background + signal);
@@ -173,11 +173,11 @@ struct Scene {
     FrameSpan span() const {
         return FrameSpan{px.data(), mask.nrows(), mask.ncols()};
     }
-    Plane<const float> bg_plane() const {
-        return Plane<const float>{bg.data(), mask.nrows(), mask.ncols()};
+    Plane<const double> bg_plane() const {
+        return Plane<const double>{bg.data(), mask.nrows(), mask.ncols()};
     }
-    Plane<const float> sg_plane() const {
-        return Plane<const float>{sg.data(), mask.nrows(), mask.ncols()};
+    Plane<const double> sg_plane() const {
+        return Plane<const double>{sg.data(), mask.nrows(), mask.ncols()};
     }
 };
 
@@ -239,7 +239,7 @@ TEST(CentroidClusters, RejectsClustersOutsideTheSizeBounds) {
 
 TEST(CentroidClusters, ReportsThePeakAboveBackgroundAndItsSnr) {
     Scene s = Scene::from(Mask::from({"....", ".##.", "...."}), 1000, 200,
-                          /*sigma=*/100.0f);
+                          /*sigma=*/100.0);
     s.px[1 * 4 + 2] = 1900; // one pixel much brighter than the other
 
     const std::vector<Detection> dets = detect(s, ClusterParams{});
@@ -255,7 +255,7 @@ TEST(CentroidClusters, ReportsThePeakAboveBackgroundAndItsSnr) {
 /// zero.
 TEST(CentroidClusters, LeavesSnrAtZeroWhereSigmaIsUnknown) {
     Scene s = Scene::from(Mask::from({"....", ".##.", "...."}), 1000, 200,
-                          /*sigma=*/0.0f);
+                          /*sigma=*/0.0);
 
     const std::vector<Detection> dets = detect(s, ClusterParams{});
 

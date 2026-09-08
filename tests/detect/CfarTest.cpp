@@ -43,29 +43,29 @@ constexpr double kRingSigma = 8.0;   // (high - low) / 2
 
 struct Output {
     std::vector<uint8_t> mask;
-    std::vector<float> bg;
-    std::vector<float> sg;
+    std::vector<double> bg;
+    std::vector<double> sg;
     bool flagged(std::size_t r, std::size_t c) const {
         return mask[r * kSize + c] != 0;
     }
-    float background(std::size_t r, std::size_t c) const {
+    double background(std::size_t r, std::size_t c) const {
         return bg[r * kSize + c];
     }
-    float sigma(std::size_t r, std::size_t c) const {
+    double sigma(std::size_t r, std::size_t c) const {
         return sg[r * kSize + c];
     }
 };
 
 /// Runs the detector over a frame, with bg pre-poisoned so a test can tell
 /// "written" from "left alone".
-constexpr float kPoison = -12345.0f;
+constexpr double kPoison = -12345.0;
 Output run(const Frame &f, const CfarParams &p) {
     Output out{std::vector<uint8_t>(f.rows * f.cols, 0xFF),
-               std::vector<float>(f.rows * f.cols, kPoison),
-               std::vector<float>(f.rows * f.cols, kPoison)};
+               std::vector<double>(f.rows * f.cols, kPoison),
+               std::vector<double>(f.rows * f.cols, kPoison)};
     cfar_threshold(f.span(), p, Plane<uint8_t>{out.mask.data(), f.rows, f.cols},
-                   Plane<float>{out.bg.data(), f.rows, f.cols},
-                   Plane<float>{out.sg.data(), f.rows, f.cols});
+                   Plane<double>{out.bg.data(), f.rows, f.cols},
+                   Plane<double>{out.sg.data(), f.rows, f.cols});
     return out;
 }
 
@@ -81,7 +81,7 @@ TEST(CfarBackground, EqualsTheFrameValueOnAFlatFrame) {
 
     const Output out = run(f, CfarParams{});
 
-    EXPECT_FLOAT_EQ(out.background(kCentre, kCentre), 4000.0f);
+    EXPECT_DOUBLE_EQ(out.background(kCentre, kCentre), 4000.0);
     EXPECT_FALSE(out.flagged(kCentre, kCentre))
         << "a pixel equal to its own background is not a detection";
 }
@@ -98,7 +98,7 @@ TEST(CfarBackground, FollowsALinearRowGradient) {
 
     for (std::size_t r = 6; r + 6 < kSize; ++r)
         EXPECT_NEAR(out.background(r, kCentre),
-                    static_cast<float>(1000 + 20 * r), 1e-3f)
+                    static_cast<double>(1000 + 20 * r), 1e-3)
             << "at row " << r;
 }
 
@@ -112,11 +112,11 @@ TEST(CfarBackground, IsLeftUntouchedOnTheBorder) {
 
     const Output out = run(f, CfarParams{});
 
-    EXPECT_FLOAT_EQ(out.background(0, 0), kPoison);
-    EXPECT_FLOAT_EQ(out.background(5, kCentre), kPoison)
+    EXPECT_DOUBLE_EQ(out.background(0, 0), kPoison);
+    EXPECT_DOUBLE_EQ(out.background(5, kCentre), kPoison)
         << "one row inside ref";
-    EXPECT_FLOAT_EQ(out.background(kSize - 1, kSize - 1), kPoison);
-    EXPECT_FLOAT_EQ(out.background(6, kCentre), 4000.0f) << "first visited row";
+    EXPECT_DOUBLE_EQ(out.background(kSize - 1, kSize - 1), kPoison);
+    EXPECT_DOUBLE_EQ(out.background(6, kCentre), 4000.0) << "first visited row";
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ TEST(CfarThreshold, WritesTheLocalSigmaAlongsideTheMean) {
     const Output out = run(checkerboard(kLow, kHigh), CfarParams{});
 
     EXPECT_NEAR(out.sigma(kCentre, kCentre), kRingSigma, 1e-3);
-    EXPECT_FLOAT_EQ(out.sigma(0, 0), kPoison)
+    EXPECT_DOUBLE_EQ(out.sigma(0, 0), kPoison)
         << "like bg, sigma is only written on the interior";
 }
 
@@ -182,7 +182,7 @@ TEST(CfarGuardBand, ExcludesEnergyCloseToTheCentreFromTheBackground) {
     CfarParams unguarded{};
     unguarded.guard = 0;
 
-    EXPECT_FLOAT_EQ(run(f, guarded).background(kCentre, kCentre), 1000.0f)
+    EXPECT_DOUBLE_EQ(run(f, guarded).background(kCentre, kCentre), 1000.0)
         << "a neighbour inside the guard band must not enter the estimate";
     EXPECT_GT(run(f, unguarded).background(kCentre, kCentre), 1000.0f)
         << "with no guard band the same neighbour does enter it";
@@ -196,11 +196,11 @@ TEST(CfarThreshold, FlagsNothingWhenTheFrameIsSmallerThanTheRing) {
     std::vector<Pixel> px(n * n, 1000);
     px[(n / 2) * n + n / 2] = 60000;
     std::vector<uint8_t> mask(n * n, 0xFF);
-    std::vector<float> bg(n * n, kPoison), sg(n * n, kPoison);
+    std::vector<double> bg(n * n, kPoison), sg(n * n, kPoison);
 
     cfar_threshold(
         FrameSpan{px.data(), n, n}, p, Plane<uint8_t>{mask.data(), n, n},
-        Plane<float>{bg.data(), n, n}, Plane<float>{sg.data(), n, n});
+        Plane<double>{bg.data(), n, n}, Plane<double>{sg.data(), n, n});
 
     EXPECT_TRUE(std::ranges::all_of(mask, [](uint8_t m) { return m == 0; }))
         << "mask is cleared even when no pixel is examined";

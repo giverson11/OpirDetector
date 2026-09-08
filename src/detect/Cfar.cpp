@@ -41,7 +41,7 @@ MeanSigma ring_stats(FrameSpan px, size_t r, size_t c, const CfarParams &p) {
 } // namespace
 
 void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
-                    Plane<float> bg, Plane<float> sg) {
+                    Plane<double> bg, Plane<double> sg) {
     const size_t rows = px.extent(0);
     const size_t cols = px.extent(1);
     const size_t ref = static_cast<size_t>(p.ref);
@@ -57,8 +57,8 @@ void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
             const auto [mean, sigma] = ring_stats(px, r, c, p);
             const double threshold = mean + p.k * sigma;
 
-            sg[r, c] = static_cast<float>(sigma);
-            bg[r, c] = static_cast<float>(mean);
+            sg[r, c] = sigma;
+            bg[r, c] = mean;
             mask[r, c] = (px[r, c] > threshold) ? 1 : 0;
         }
     }

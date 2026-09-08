@@ -50,8 +50,8 @@ uint32_t label_clusters(Plane<const std::uint8_t> mask, Plane<uint32_t> labels,
 
 std::vector<Detection>
 centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
-                  std::size_t n_labels, Plane<const float> bg,
-                  Plane<const float> sg, const ClusterParams &p,
+                  std::size_t n_labels, Plane<const double> bg,
+                  Plane<const double> sg, const ClusterParams &p,
                   FrameId frame_id) {
     struct Accum {
         double w = 0, wr = 0, wc = 0, peak = 0;
@@ -67,16 +67,14 @@ centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
             if (lbl == 0)
                 continue;
 
-            const double w = std::max<double>(static_cast<double>(px[r, c]) -
-                                                  static_cast<double>(bg[r, c]),
-                                              0.0);
+            const double w = std::max(px[r, c] - bg[r, c], 0.0);
             auto &a = acc[lbl];
             a.w += w;
             a.wr += w * static_cast<double>(r);
             a.wc += w * static_cast<double>(c);
             if (w > a.peak) {
                 a.peak = w;
-                a.sigma_at_peak = static_cast<double>(sg[r, c]);
+                a.sigma_at_peak = sg[r, c];
             }
             ++a.count;
         }

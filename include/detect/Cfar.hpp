@@ -27,5 +27,5 @@ struct CfarParams {
 /// @param sg local sigma, written only on the interior
 ///
 void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
-                    Plane<float> bg, Plane<float> sg);
+                    Plane<double> bg, Plane<double> sg);
 } // namespace opir

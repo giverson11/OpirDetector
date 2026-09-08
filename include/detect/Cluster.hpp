@@ -54,7 +54,7 @@ std::uint32_t label_clusters(Plane<const std::uint8_t> mask,
 ///
 std::vector<Detection>
 centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
-                  std::size_t n_labels, Plane<const float> bg,
-                  Plane<const float> sg, const ClusterParams &p,
+                  std::size_t n_labels, Plane<const double> bg,
+                  Plane<const double> sg, const ClusterParams &p,
                   FrameId frame_id);
 } // namespace opir
