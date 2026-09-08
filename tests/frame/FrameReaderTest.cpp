@@ -5,29 +5,28 @@
 #include "frame/Frame.hpp"
 #include "frame/FrameWriter.hpp"
 
+#include "support/Ramp.hpp"
 #include "support/TempFile.hpp"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <ios>
-#include <numeric>
 #include <span>
 #include <vector>
 
 namespace opir {
 namespace {
 
+using test::ramp;
+
 constexpr std::size_t kRows = 4;
 constexpr std::size_t kColumns = 3;
 constexpr std::size_t kPixelsPerFrame = kRows * kColumns;
-
-std::vector<Pixel> ramp(std::size_t count, Pixel first = 1) {
-    std::vector<Pixel> values(count);
-    std::iota(values.begin(), values.end(), first);
-    return values;
-}
+constexpr std::uintmax_t kPayloadBytes = kPixelsPerFrame * sizeof(Pixel);
 
 /// Writes `count` frames through the real writer, ids 0.. and timestamps at
 /// half-second steps, frame f carrying the ramp starting at 100 * (f + 1).
@@ -39,15 +38,15 @@ void write_frames(const test::TempFile &file, std::size_t count) {
             ramp(kPixelsPerFrame, static_cast<Pixel>(100 * (f + 1))));
 }
 
-/// Writes one frame from a header the test has hand-built, so that a header the
-/// writer would never produce can still be put in front of a reader.
-void write_corrupt_frame(const test::TempFile &file, const FrameHeader &header,
-                         std::size_t pixel_count = kPixelsPerFrame) {
+/// Appends one frame from a header the test has hand-built, so that a header
+/// the writer would never produce can still be put in front of a reader.
+void write_corrupt_frame(const test::TempFile &file,
+                         const FrameHeader &header) {
     std::ofstream out{file.path(), std::ios::binary | std::ios::app};
     const auto header_bytes = std::as_bytes(std::span{&header, 1});
     out.write(reinterpret_cast<const char *>(header_bytes.data()),
               static_cast<std::streamsize>(header_bytes.size()));
-    const std::vector<Pixel> pixels = ramp(pixel_count);
+    const std::vector<Pixel> pixels = ramp(header.rows * header.cols);
     const auto pixel_bytes = std::as_bytes(std::span{pixels});
     out.write(reinterpret_cast<const char *>(pixel_bytes.data()),
               static_cast<std::streamsize>(pixel_bytes.size()));
@@ -66,8 +65,6 @@ FrameHeader good_header(FrameId id = 0) {
 void truncate_by(const test::TempFile &file, std::uintmax_t n) {
     std::filesystem::resize_file(file.path(), file.size() - n);
 }
-
-// ---------------------------------------------------------------------------
 
 TEST(FrameReaderConstruction, ThrowsWhenThePathCannotBeOpened) {
     EXPECT_THROW(FrameReader{test::unopenable_path()}, Error);
@@ -99,8 +96,18 @@ TEST(FrameReaderNext, RoundTripsWhatTheWriterWrote) {
 }
 
 /// A file that stops on a frame boundary has ended, not failed, and keeps
-/// saying so rather than reporting something new on a second call.
-TEST(FrameReaderNext, ReportsEndOfStreamAfterTheLastFrameAndStaysThere) {
+/// saying so rather than reporting something new on a second call. An empty
+/// file is the zero-frame case of the same thing.
+TEST(FrameReaderNext, ReportsEndOfStreamOnAnEmptyFileAndAfterTheLastFrame) {
+    {
+        test::TempFile empty{".bin"};
+        write_frames(empty, 0);
+        FrameReader reader{empty.path()};
+        const auto frame = reader.next();
+        ASSERT_FALSE(frame.has_value());
+        EXPECT_EQ(frame.error(), ParseError::EndOfStream);
+    }
+
     test::TempFile file{".bin"};
     write_frames(file, 2);
 
@@ -115,21 +122,13 @@ TEST(FrameReaderNext, ReportsEndOfStreamAfterTheLastFrameAndStaysThere) {
     }
 }
 
-TEST(FrameReaderNext, ReportsEndOfStreamOnAnEmptyFile) {
-    test::TempFile file{".bin"};
-    write_frames(file, 0);
-
-    FrameReader reader{file.path()};
-    const auto frame = reader.next();
-    ASSERT_FALSE(frame.has_value());
-    EXPECT_EQ(frame.error(), ParseError::EndOfStream);
-}
-
 /// The distinction the whole read path exists to make: a file cut off part way
-/// through is corrupt, and must not look like a clean end.
-TEST(FrameReaderNext, ReportsShortReadOnATruncatedFrame) {
-    for (const std::uintmax_t missing : {std::uintmax_t{1}, std::uintmax_t{5},
-                                         kPixelsPerFrame * sizeof(Pixel)}) {
+/// through, whether inside the pixels or inside the header, is corrupt and
+/// must not look like a clean end.
+TEST(FrameReaderNext, ReportsShortReadOnATruncatedFrameOrHeader) {
+    for (const std::uintmax_t missing :
+         {std::uintmax_t{1}, std::uintmax_t{5}, kPayloadBytes,
+          kPayloadBytes + sizeof(FrameHeader) - 4}) {
         test::TempFile file{".bin"};
         write_frames(file, 2);
         truncate_by(file, missing);
@@ -145,28 +144,14 @@ TEST(FrameReaderNext, ReportsShortReadOnATruncatedFrame) {
     }
 }
 
-TEST(FrameReaderNext, ReportsShortReadOnATruncatedHeader) {
-    test::TempFile file{".bin"};
-    write_frames(file, 1);
-    // One frame, plus a few bytes of a header that never arrived.
-    {
-        std::ofstream out{file.path(), std::ios::binary | std::ios::app};
-        const char partial[4]{'O', 'P', 'I', 'R'};
-        out.write(partial, sizeof(partial));
-    }
-
-    FrameReader reader{file.path()};
-    EXPECT_TRUE(reader.next().has_value());
-
-    const auto frame = reader.next();
-    ASSERT_FALSE(frame.has_value());
-    EXPECT_EQ(frame.error(), ParseError::ShortRead);
-}
-
-/// Everything the header exists to catch, one mutation at a time.
+/// Everything the header exists to catch, one mutation at a time. The last
+/// case needs a good frame ahead of it: every frame in a file comes off one
+/// detector, so a shape that changes part way through means two captures were
+/// concatenated.
 TEST(FrameReaderNext, RejectsAHeaderItDoesNotRecognise) {
     struct Case {
         const char *name;
+        std::size_t good_frames_first;
         FrameHeader header;
         ParseError expected;
     };
@@ -174,49 +159,39 @@ TEST(FrameReaderNext, RejectsAHeaderItDoesNotRecognise) {
 
     FrameHeader bad_magic = good_header();
     bad_magic.magic = {'N', 'O', 'P', 'E'};
-    cases.push_back({"bad magic", bad_magic, ParseError::BadMagic});
+    cases.push_back({"bad magic", 0, bad_magic, ParseError::BadMagic});
 
     FrameHeader bad_version = good_header();
     bad_version.version = kFrameVersion + 1;
     cases.push_back(
-        {"future version", bad_version, ParseError::UnsupportedVersion});
+        {"future version", 0, bad_version, ParseError::UnsupportedVersion});
 
     FrameHeader zero_rows = good_header();
     zero_rows.rows = 0;
-    cases.push_back({"zero rows", zero_rows, ParseError::BadDimensions});
+    cases.push_back({"zero rows", 0, zero_rows, ParseError::BadDimensions});
 
     FrameHeader huge = good_header();
     huge.cols = kMaxFrameDim + 1;
-    cases.push_back({"oversized columns", huge, ParseError::BadDimensions});
+    cases.push_back({"oversized columns", 0, huge, ParseError::BadDimensions});
+
+    FrameHeader reshaped = good_header(1);
+    reshaped.rows = kRows + 1;
+    cases.push_back(
+        {"shape change mid-stream", 1, reshaped, ParseError::BadDimensions});
 
     for (const Case &c : cases) {
         test::TempFile file{".bin"};
+        write_frames(file, c.good_frames_first);
         write_corrupt_frame(file, c.header);
 
         FrameReader reader{file.path()};
+        for (std::size_t f = 0; f < c.good_frames_first; ++f)
+            ASSERT_TRUE(reader.next().has_value()) << c.name;
+
         const auto frame = reader.next();
         ASSERT_FALSE(frame.has_value()) << c.name;
         EXPECT_EQ(frame.error(), c.expected) << c.name;
     }
-}
-
-/// Every frame in a file comes off one detector, so a shape that changes part
-/// way through means two captures were concatenated, not that the frame is
-/// merely unusual.
-TEST(FrameReaderNext, RejectsAShapeThatChangesMidStream) {
-    test::TempFile file{".bin"};
-    write_frames(file, 1);
-
-    FrameHeader different = good_header(1);
-    different.rows = kRows + 1;
-    write_corrupt_frame(file, different, (kRows + 1) * kColumns);
-
-    FrameReader reader{file.path()};
-    EXPECT_TRUE(reader.next().has_value());
-
-    const auto frame = reader.next();
-    ASSERT_FALSE(frame.has_value());
-    EXPECT_EQ(frame.error(), ParseError::BadDimensions);
 }
 
 } // namespace

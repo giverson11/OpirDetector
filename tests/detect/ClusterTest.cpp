@@ -36,7 +36,7 @@ struct Mask {
 
 /// Labels a mask and returns both the label image and how many were found.
 struct Labelled {
-    int count = 0;
+    std::uint32_t count = 0;
     std::vector<std::uint32_t> labels;
 
     std::uint32_t at(const Mask &m, int r, int c) const {
@@ -66,66 +66,33 @@ Labelled label(const Mask &m) {
 // label_clusters
 // ---------------------------------------------------------------------------
 
-TEST(LabelClusters, FindsNothingInAnEmptyMask) {
-    const Mask m = Mask::from({"....", "....", "...."});
+/// Ids are dense from 1 in raster order so a caller can size a table by the
+/// count; corners must not be skipped; unlit pixels stay 0.
+TEST(LabelClusters, NumbersEachBlobDenselyFromOneIncludingCorners) {
+    const Mask m = Mask::from({"#...#", ".....", "..#..", ".....", "#...#"});
 
     const Labelled out = label(m);
 
-    EXPECT_EQ(out.count, 0);
-    EXPECT_TRUE(std::ranges::all_of(out.labels, [](std::uint32_t l) {
-        return l == 0;
-    })) << "every pixel must be cleared, not just the lit ones";
+    EXPECT_EQ(out.count, 5u);
+    EXPECT_EQ(out.distinct(), (std::vector<std::uint32_t>{1, 2, 3, 4, 5}));
+    EXPECT_EQ(out.at(m, 0, 0), 1u);
+    EXPECT_EQ(out.at(m, 0, 4), 2u);
+    EXPECT_EQ(out.at(m, 2, 2), 3u);
+    EXPECT_EQ(out.at(m, 4, 4), 5u);
+    EXPECT_EQ(out.at(m, 1, 1), 0u) << "an unlit pixel carries no label";
 }
 
-TEST(LabelClusters, LabelsALonePixel) {
-    const Mask m = Mask::from({".....", "..#..", "....."});
-
-    const Labelled out = label(m);
-
-    EXPECT_EQ(out.count, 1);
-    EXPECT_EQ(out.at(m, 1, 2), 1);
-    EXPECT_EQ(out.at(m, 0, 0), 0);
-}
-
-/// Connectivity is 8-way, so a diagonal touch is one cluster and not two.
-TEST(LabelClusters, JoinsDiagonallyTouchingPixels) {
-    const Mask diagonal = Mask::from({"#....", ".#...", "....."});
-    const Labelled joined = label(diagonal);
-    EXPECT_EQ(joined.count, 1);
-    EXPECT_EQ(joined.at(diagonal, 0, 0), joined.at(diagonal, 1, 1));
+/// Connectivity is 8-way, so a diagonal touch is one cluster and not two, and
+/// the flood fill has to walk round corners rather than fill a rectangle.
+TEST(LabelClusters, JoinsThroughDiagonalsAndAroundCorners) {
+    const Mask vee = Mask::from({"#...#", ".#.#.", "..#.."});
+    const Labelled joined = label(vee);
+    EXPECT_EQ(joined.count, 1u);
+    EXPECT_EQ(joined.at(vee, 0, 0), joined.at(vee, 0, 4))
+        << "the two arms meet only at the bottom of the V";
 
     const Mask apart = Mask::from({"#....", "..#..", "....."});
-    EXPECT_EQ(label(apart).count, 2) << "a knight's move is not adjacency";
-}
-
-TEST(LabelClusters, NumbersSeparateBlobsConsecutivelyFromOne) {
-    const Mask m =
-        Mask::from({"##...##", "##.....", ".......", "...#...", "......."});
-
-    const Labelled out = label(m);
-
-    EXPECT_EQ(out.count, 3);
-    EXPECT_EQ(out.distinct(), (std::vector<std::uint32_t>{1, 2, 3}))
-        << "ids must be dense from 1 so a caller can size a table by the count";
-}
-
-/// The flood fill has to walk round corners, not just fill a rectangle.
-TEST(LabelClusters, TreatsANonConvexShapeAsOneCluster) {
-    const Mask u = Mask::from({"#...#", "#...#", "#####"});
-
-    const Labelled out = label(u);
-
-    EXPECT_EQ(out.count, 1);
-    EXPECT_EQ(out.at(u, 0, 0), out.at(u, 0, 4))
-        << "the two arms are joined only through the bottom of the U";
-}
-
-TEST(LabelClusters, LabelsClustersTouchingEveryEdge) {
-    const Mask m = Mask::from({"#...#", ".....", "#...#"});
-
-    const Labelled out = label(m);
-
-    EXPECT_EQ(out.count, 4) << "corner pixels must not be skipped";
+    EXPECT_EQ(label(apart).count, 2u) << "a knight's move is not adjacency";
 }
 
 /// The stack is scratch space owned by the caller so it can be reused; reusing
@@ -142,9 +109,9 @@ TEST(LabelClusters, GivesTheSameAnswerWhenTheScratchStackIsReused) {
             Plane<std::uint32_t>{out.data(), m.nrows(), m.ncols()}, stack);
     };
 
-    EXPECT_EQ(run(big, a), 1);
-    EXPECT_EQ(run(small, b), 1);
-    EXPECT_EQ(run(big, a), 1)
+    EXPECT_EQ(run(big, a), 1u);
+    EXPECT_EQ(run(small, b), 1u);
+    EXPECT_EQ(run(big, a), 1u)
         << "a stack carrying leftovers would corrupt the next frame";
 }
 
@@ -188,8 +155,7 @@ std::vector<Detection> detect(const Scene &s, const ClusterParams &p,
                              Plane<const std::uint32_t>{l.labels.data(),
                                                         s.mask.nrows(),
                                                         s.mask.ncols()},
-                             static_cast<std::size_t>(l.count), s.bg_plane(),
-                             s.sg_plane(), p, frame_id);
+                             l.count, s.bg_plane(), s.sg_plane(), p, frame_id);
 }
 
 TEST(CentroidClusters, PlacesAClusterAtItsCentreOfMassAndStampsTheFrame) {
@@ -237,39 +203,28 @@ TEST(CentroidClusters, RejectsClustersOutsideTheSizeBounds) {
     EXPECT_EQ(detect(s, p).size(), 1u) << "now only the 4-pixel block survives";
 }
 
-TEST(CentroidClusters, ReportsThePeakAboveBackgroundAndItsSnr) {
-    Scene s = Scene::from(Mask::from({"....", ".##.", "...."}), 1000, 200,
-                          /*sigma=*/100.0);
-    s.px[1 * 4 + 2] = 1900; // one pixel much brighter than the other
+/// Amplitude is the brightest pixel above its background and SNR is that
+/// divided by the sigma at that pixel. Weights are clamped at zero, so a
+/// cluster sitting entirely at or below its background carries no weight and
+/// produces no detection at all.
+TEST(CentroidClusters, ReportsPeakAndSnrAndSkipsAClusterBelowItsBackground) {
+    Scene s = Scene::from(Mask::from({".....", ".###.", ".....", "##..."}),
+                          1000, 200, /*sigma=*/100.0);
+    s.px[1 * 5 + 2] = 1900;                     // the peak: 900 above bg
+    s.bg[1 * 5 + 1] = 1300.0;                   // left neighbour under bg
+    s.bg[1 * 5 + 3] = 1100.0;                   // right neighbour 100 above
+    s.bg[3 * 5 + 0] = s.bg[3 * 5 + 1] = 2000.0; // bottom cluster under bg
 
     const std::vector<Detection> dets = detect(s, ClusterParams{});
 
-    ASSERT_EQ(dets.size(), 1u);
+    ASSERT_EQ(dets.size(), 1u) << "the cluster with no weight is skipped";
+    EXPECT_DOUBLE_EQ(dets[0].row, 1.0) << "the survivor is the top one";
+    EXPECT_DOUBLE_EQ(dets[0].col, 2.1)
+        << "(900 * 2 + 0 * 1 + 100 * 3) / 1000: a pixel under its background "
+           "gets zero weight, not negative";
     EXPECT_DOUBLE_EQ(dets[0].amplitude, 900.0) << "peak minus background";
     EXPECT_DOUBLE_EQ(dets[0].snr, 9.0)
         << "the peak divided by the sigma at the peak pixel";
-}
-
-/// A cluster whose peak sits on a pixel with no measured noise -- the border,
-/// where cfar_threshold never wrote -- gets no score rather than a division by
-/// zero.
-TEST(CentroidClusters, LeavesSnrAtZeroWhereSigmaIsUnknown) {
-    Scene s = Scene::from(Mask::from({"....", ".##.", "...."}), 1000, 200,
-                          /*sigma=*/0.0);
-
-    const std::vector<Detection> dets = detect(s, ClusterParams{});
-
-    ASSERT_EQ(dets.size(), 1u);
-    EXPECT_DOUBLE_EQ(dets[0].snr, 0.0);
-}
-
-/// Weights are clamped at zero, so a cluster sitting entirely at or below its
-/// background carries no weight and cannot produce a centroid.
-TEST(CentroidClusters, SkipsAClusterWithNoSignalAboveBackground) {
-    Scene s = Scene::from(Mask::from({"....", ".##.", "...."}), 1000, 0);
-    std::ranges::fill(s.bg, 2000.0f); // background above every pixel
-
-    EXPECT_TRUE(detect(s, ClusterParams{}).empty());
 }
 
 } // namespace

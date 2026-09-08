@@ -1,5 +1,6 @@
 #include "sim/SceneSimulator.hpp"
 #include "core/Error.hpp"
+#include "core/Types.hpp"
 
 #include <gtest/gtest.h>
 
@@ -8,8 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
-#include <numbers>
 #include <numeric>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -37,28 +38,27 @@ SceneParams quiet_params() {
 
 /// A frame big enough to hold a blob well clear of every edge.
 constexpr std::size_t kGrid = 96;
-constexpr std::size_t kCenterIndex = 48;
 constexpr double kCenter = 48.0;
+
+/// One row past the last row (and column) of the frame.
+constexpr double kPastEdge = static_cast<double>(kGrid);
 
 /// A rendered buffer plus the shape needed to address it by (row, column).
 struct Image {
     std::size_t rows{};
     std::size_t columns{};
-    std::vector<uint16_t> pixels;
+    std::vector<Pixel> pixels;
 
-    uint16_t at(std::size_t r, std::size_t c) const {
+    Pixel at(std::size_t r, std::size_t c) const {
         return pixels[r * columns + c];
-    }
-    double sum() const {
-        return std::accumulate(pixels.begin(), pixels.end(), 0.0);
     }
 };
 
 Image render(SceneSimulator &simulator, std::size_t rows, std::size_t columns,
-             std::uint32_t frame = 0) {
+             FrameId frame = 0) {
     Image image{.rows = rows,
                 .columns = columns,
-                .pixels = std::vector<uint16_t>(rows * columns)};
+                .pixels = std::vector<Pixel>(rows * columns)};
     simulator.render(frame, image.pixels);
     return image;
 }
@@ -72,377 +72,21 @@ std::pair<std::size_t, std::size_t> peak_of(const Image &image) {
     return {index / image.columns, index % image.columns};
 }
 
-double mean_of(const std::vector<uint16_t> &values) {
+double mean_of(const std::vector<Pixel> &values) {
     return std::accumulate(values.begin(), values.end(), 0.0) /
            static_cast<double>(values.size());
 }
 
 /// Sample standard deviation (Bessel-corrected).
-double stddev_of(const std::vector<uint16_t> &values) {
+double stddev_of(const std::vector<Pixel> &values) {
     const double mean = mean_of(values);
     double sum_squares = 0.0;
-    for (const uint16_t value : values) {
+    for (const Pixel value : values) {
         const double deviation = static_cast<double>(value) - mean;
         sum_squares += deviation * deviation;
     }
     return std::sqrt(sum_squares / static_cast<double>(values.size() - 1));
 }
-
-// ---------------------------------------------------------------------------
-// SceneParams, one field at a time.
-// ---------------------------------------------------------------------------
-
-/// dc_level is the flat pedestal every pixel sits on.
-TEST(SceneParamsDcLevel, SetsEveryPixelWhenNothingElseContributes) {
-    SceneParams params = quiet_params();
-    params.dc_level = 1234.0;
-    SceneSimulator simulator(8, 8, params, kSeed);
-
-    const Image image = render(simulator, 8, 8);
-
-    for (const uint16_t pixel : image.pixels)
-        EXPECT_EQ(pixel, 1234);
-}
-
-/// The buffer is uint16_t, so the pedestal is rounded and clamped into range.
-TEST(SceneParamsDcLevel, IsRoundedToTheNearestCount) {
-    SceneParams params = quiet_params();
-    params.dc_level = 100.6;
-    SceneSimulator simulator(4, 4, params, kSeed);
-
-    EXPECT_EQ(render(simulator, 4, 4).at(0, 0), 101);
-}
-
-TEST(SceneParamsDcLevel, ClampsBelowZeroAndAboveSaturation) {
-    SceneParams dark = quiet_params();
-    dark.dc_level = -500.0;
-    SceneSimulator dark_simulator(4, 4, dark, kSeed);
-    EXPECT_EQ(render(dark_simulator, 4, 4).at(0, 0), 0);
-
-    SceneParams bright = quiet_params();
-    bright.dc_level = 70000.0;
-    SceneSimulator bright_simulator(4, 4, bright, kSeed);
-    EXPECT_EQ(render(bright_simulator, 4, 4).at(0, 0), 65535);
-}
-
-/// row_gradient adds a fixed step per row and nothing across a row.
-TEST(SceneParamsRowGradient, AddsALinearRampDownRowsOnly) {
-    SceneParams params = quiet_params();
-    params.dc_level = 1000.0;
-    params.row_gradient = 25.0;
-    SceneSimulator simulator(16, 12, params, kSeed);
-
-    const Image image = render(simulator, 16, 12);
-
-    for (std::size_t r = 0; r < image.rows; ++r) {
-        const uint16_t expected =
-            static_cast<uint16_t>(1000 + 25 * static_cast<int>(r));
-        for (std::size_t c = 0; c < image.columns; ++c)
-            EXPECT_EQ(image.at(r, c), expected)
-                << "at row " << r << ", column " << c;
-    }
-}
-
-TEST(SceneParamsRowGradient, MayBeNegativeAndClampsAtZero) {
-    SceneParams params = quiet_params();
-    params.dc_level = 100.0;
-    params.row_gradient = -10.0;
-    SceneSimulator simulator(16, 4, params, kSeed);
-
-    const Image image = render(simulator, 16, 4);
-
-    EXPECT_EQ(image.at(0, 0), 100);
-    EXPECT_EQ(image.at(5, 0), 50);
-    EXPECT_EQ(image.at(10, 0), 0);
-    EXPECT_EQ(image.at(15, 0), 0) << "a ramp below zero must clamp, not wrap";
-}
-
-/// NOTE: `mean` is handed to *both* the fixed-pattern distribution and the read
-/// noise distribution, so it lands on every pixel twice. This test pins the
-/// behavior as it stands; see the review note if a single offset was intended.
-TEST(SceneParamsMean, OffsetsEveryPixelOncePerNoiseSource) {
-    SceneParams params = quiet_params();
-    params.dc_level = 1000.0;
-    params.mean = 50.0;
-    SceneSimulator simulator(8, 8, params, kSeed);
-
-    const Image image = render(simulator, 8, 8);
-
-    for (const uint16_t pixel : image.pixels)
-        EXPECT_EQ(pixel, 1100);
-}
-
-/// Fixed-pattern noise is per-pixel and, as the name says, fixed: it is drawn
-/// once at construction and repeats in every frame.
-TEST(SceneParamsFpnSigma, IsIdenticalInEveryFrame) {
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    params.fpn_sigma = 50.0;
-    SceneSimulator simulator(32, 32, params, kSeed);
-
-    const Image first = render(simulator, 32, 32, 0);
-    const Image second = render(simulator, 32, 32, 1);
-
-    EXPECT_EQ(first.pixels, second.pixels);
-}
-
-TEST(SceneParamsFpnSigma, SetsTheSpatialSpreadAboutDcLevel) {
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    params.fpn_sigma = 50.0;
-    SceneSimulator simulator(128, 128, params, kSeed);
-
-    const Image image = render(simulator, 128, 128);
-
-    EXPECT_NEAR(mean_of(image.pixels), 10000.0, 5.0);
-    EXPECT_NEAR(stddev_of(image.pixels), 50.0, 5.0);
-}
-
-TEST(SceneParamsFpnSigma, LeavesAFlatFrameWhenZero) {
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    SceneSimulator simulator(32, 32, params, kSeed);
-
-    const Image image = render(simulator, 32, 32);
-
-    EXPECT_DOUBLE_EQ(stddev_of(image.pixels), 0.0);
-}
-
-/// Read noise is redrawn per pixel per frame, so it varies in time where the
-/// fixed pattern does not.
-TEST(SceneParamsReadSigma, VariesFromFrameToFrame) {
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    params.read_sigma = 30.0;
-    SceneSimulator simulator(32, 32, params, kSeed);
-
-    const Image first = render(simulator, 32, 32, 0);
-    const Image second = render(simulator, 32, 32, 0);
-
-    EXPECT_NE(first.pixels, second.pixels)
-        << "read noise must be redrawn, even at the same timestamp";
-}
-
-TEST(SceneParamsReadSigma, SetsTheTemporalSpreadOfASinglePixel) {
-    constexpr std::size_t kFrames = 512;
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    params.read_sigma = 30.0;
-    SceneSimulator simulator(8, 8, params, kSeed);
-
-    std::vector<uint16_t> history;
-    history.reserve(kFrames);
-    for (std::size_t frame = 0; frame < kFrames; ++frame)
-        history.push_back(
-            render(simulator, 8, 8, static_cast<std::uint32_t>(frame))
-                .at(3, 5));
-
-    EXPECT_NEAR(mean_of(history), 10000.0, 5.0);
-    EXPECT_NEAR(stddev_of(history), 30.0, 3.0);
-}
-
-/// dt converts a frame index into seconds. It only shows up through target
-/// motion, so these render one moving target and look at where its peak lands.
-Image moving_target_frame(double dt, std::uint32_t frame) {
-    SceneParams params = quiet_params();
-    params.dt = dt;
-    SceneSimulator simulator(kGrid, kGrid, params, kSeed);
-    simulator.add_target(Target{.r0 = 10.0,
-                                .c0 = kCenter,
-                                .r_rate = 4.0,
-                                .c_rate = 0.0,
-                                .amplitude = 5000.0,
-                                .sigma = 4.0});
-    return render(simulator, kGrid, kGrid, frame);
-}
-
-std::size_t moving_peak_row(double dt, std::uint32_t frame) {
-    return peak_of(moving_target_frame(dt, frame)).first;
-}
-
-TEST(SceneParamsDt, ScalesTheFrameIndexIntoSeconds) {
-    EXPECT_EQ(moving_peak_row(0.5, 0), 10u) << "frame 0 is always t = 0";
-    EXPECT_EQ(moving_peak_row(0.5, 8), 26u) << "10 + 4 * (8 * 0.5)";
-    EXPECT_EQ(moving_peak_row(0.25, 8), 18u) << "10 + 4 * (8 * 0.25)";
-}
-
-TEST(SceneParamsDt, GivesTheSameSceneForTheSameElapsedTime) {
-    // Frame 3 at dt = 1.0 and frame 6 at dt = 0.5 are both t = 3 seconds.
-    EXPECT_EQ(moving_target_frame(1.0, 3).pixels,
-              moving_target_frame(0.5, 6).pixels);
-}
-
-TEST(SceneParamsDt, FreezesTheSceneWhenZero) {
-    EXPECT_EQ(moving_peak_row(0.0, 0), 10u);
-    EXPECT_EQ(moving_peak_row(0.0, 1000), 10u) << "no dt means no motion";
-}
-
-/// The seed is what makes a run reproducible; it drives both noise sources.
-TEST(SceneSimulatorSeed, ReproducesAFrameExactlyAndDiffersAcrossSeeds) {
-    SceneParams params = quiet_params();
-    params.dc_level = 10000.0;
-    params.fpn_sigma = 50.0;
-    params.read_sigma = 30.0;
-
-    SceneSimulator a(32, 32, params, kSeed);
-    SceneSimulator b(32, 32, params, kSeed);
-    SceneSimulator c(32, 32, params, kSeed + 1);
-
-    EXPECT_EQ(render(a, 32, 32).pixels, render(b, 32, 32).pixels);
-    EXPECT_NE(render(a, 32, 32).pixels, render(c, 32, 32).pixels);
-}
-
-TEST(SceneSimulatorRender, RejectsABufferSmallerThanTheFrame) {
-    SceneSimulator simulator(8, 8, quiet_params(), kSeed);
-    std::vector<uint16_t> too_small(8 * 8 - 1);
-    EXPECT_THROW(simulator.render(0, too_small), Error);
-
-    std::vector<uint16_t> exact(8 * 8);
-    EXPECT_NO_THROW(simulator.render(0, exact));
-}
-
-// ---------------------------------------------------------------------------
-// Target rendering: shape, placement and energy of the Gaussian blob.
-// ---------------------------------------------------------------------------
-
-/// A centred, motionless target on an otherwise empty frame.
-Image render_centered_target(double amplitude, double sigma) {
-    SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
-    simulator.add_target(Target{.r0 = kCenter,
-                                .c0 = kCenter,
-                                .r_rate = 0.0,
-                                .c_rate = 0.0,
-                                .amplitude = amplitude,
-                                .sigma = sigma});
-    return render(simulator, kGrid, kGrid);
-}
-
-TEST(TargetRender, IsSymmetricAboutItsCenter) {
-    const Image image = render_centered_target(5000.0, 4.0);
-    constexpr std::size_t center = kCenterIndex;
-
-    for (std::size_t d = 1; d <= 20; ++d) {
-        EXPECT_EQ(image.at(center + d, center), image.at(center - d, center))
-            << "row symmetry broken at offset " << d;
-        EXPECT_EQ(image.at(center, center + d), image.at(center, center - d))
-            << "column symmetry broken at offset " << d;
-        EXPECT_EQ(image.at(center + d, center + d),
-                  image.at(center - d, center - d))
-            << "diagonal symmetry broken at offset " << d;
-        // The blob is circular, so swapping the two offsets must not matter.
-        EXPECT_EQ(image.at(center + d, center + 2 * d),
-                  image.at(center + 2 * d, center + d))
-            << "isotropy broken at offset " << d;
-    }
-}
-
-TEST(TargetRender, PeaksAtTheTargetCenterWithTheTargetAmplitude) {
-    const Image image = render_centered_target(5000.0, 4.0);
-    constexpr std::size_t center = kCenterIndex;
-
-    const auto [peak_row, peak_column] = peak_of(image);
-
-    EXPECT_EQ(peak_row, center);
-    EXPECT_EQ(peak_column, center);
-    EXPECT_EQ(image.at(center, center), 5000);
-}
-
-TEST(TargetRender, PeakFollowsTheTargetRatesOverTime) {
-    // Frame 12 at dt = 0.5 is t = 6 seconds.
-    SceneParams params = quiet_params();
-    params.dt = 0.5;
-    SceneSimulator simulator(kGrid, kGrid, params, kSeed);
-    simulator.add_target(Target{.r0 = 10.0,
-                                .c0 = 50.0,
-                                .r_rate = 5.0,
-                                .c_rate = -4.0,
-                                .amplitude = 5000.0,
-                                .sigma = 4.0});
-
-    const auto [peak_row, peak_column] =
-        peak_of(render(simulator, kGrid, kGrid, 12));
-
-    EXPECT_EQ(peak_row, 40u) << "row should be r0 + r_rate * frame * dt";
-    EXPECT_EQ(peak_column, 26u) << "column should be c0 + c_rate * frame * dt";
-}
-
-TEST(TargetRender, FallsOffMonotonicallyAwayFromThePeak) {
-    const Image image = render_centered_target(5000.0, 4.0);
-    constexpr std::size_t center = kCenterIndex;
-
-    // Walk out along four rays and require each step to be no brighter than the
-    // last, and strictly darker while still well above the quantization floor.
-    const auto walk = [&](int row_step, int column_step, const char *name) {
-        for (std::size_t d = 0; d + 1 < kCenterIndex; ++d) {
-            const auto sample = [&](std::size_t k) {
-                return image.at(center + k * static_cast<std::size_t>(row_step),
-                                center +
-                                    k * static_cast<std::size_t>(column_step));
-            };
-            const uint16_t here = sample(d);
-            const uint16_t next = sample(d + 1);
-            EXPECT_GE(here, next) << name << " ray rose again at offset " << d;
-            if (here > 1) {
-                EXPECT_GT(here, next)
-                    << name << " ray flattened at offset " << d;
-            }
-        }
-    };
-
-    walk(1, 0, "down");
-    walk(0, 1, "right");
-    walk(1, 1, "diagonal");
-}
-
-/// A 2-D Gaussian integrates to amplitude * 2 * pi * sigma^2, and summing the
-/// pixels of a well-contained blob is that integral sampled on a unit lattice.
-class TargetEnergyTest
-    : public testing::TestWithParam<std::pair<double, double>> {};
-
-TEST_P(TargetEnergyTest, TotalsTheAnalyticGaussianIntegral) {
-    const auto [amplitude, sigma] = GetParam();
-    const Image image = render_centered_target(amplitude, sigma);
-
-    const double expected = amplitude * 2.0 * std::numbers::pi * sigma * sigma;
-
-    EXPECT_NEAR(image.sum(), expected, 0.01 * expected);
-}
-
-INSTANTIATE_TEST_SUITE_P(Blobs, TargetEnergyTest,
-                         testing::Values(std::pair{1000.0, 1.5},
-                                         std::pair{1000.0, 3.0},
-                                         std::pair{5000.0, 4.0},
-                                         std::pair{250.0, 6.0}));
-
-TEST(TargetRender, EnergyOfTwoTargetsAdds) {
-    SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
-    simulator.add_target(Target{.r0 = 24.0,
-                                .c0 = 24.0,
-                                .r_rate = 0.0,
-                                .c_rate = 0.0,
-                                .amplitude = 2000.0,
-                                .sigma = 3.0});
-    simulator.add_target(Target{.r0 = 70.0,
-                                .c0 = 70.0,
-                                .r_rate = 0.0,
-                                .c_rate = 0.0,
-                                .amplitude = 800.0,
-                                .sigma = 2.0});
-
-    const Image image = render(simulator, kGrid, kGrid);
-
-    const double expected =
-        2.0 * std::numbers::pi * (2000.0 * 9.0 + 800.0 * 4.0);
-
-    EXPECT_NEAR(image.sum(), expected, 0.01 * expected);
-}
-
-// ---------------------------------------------------------------------------
-// getTargetRecords: the per-frame truth table that pairs with the imagery.
-// ---------------------------------------------------------------------------
-
-/// One row past the last row (and column) of the frame.
-constexpr double kPastEdge = static_cast<double>(kGrid);
 
 Target static_target(double row, double column, double amplitude = 5000.0) {
     return Target{.r0 = row,
@@ -473,74 +117,244 @@ SceneSimulator simulator_with(double dt,
     return simulator;
 }
 
-std::vector<std::uint32_t> ids_of(const std::vector<TruthRecord> &records) {
-    std::vector<std::uint32_t> ids;
+std::vector<TargetId> ids_of(const std::vector<TruthRecord> &records) {
+    std::vector<TargetId> ids;
     for (const TruthRecord &record : records)
         ids.push_back(record.target_id);
     return ids;
 }
 
+// ---------------------------------------------------------------------------
+// SceneParams, one field at a time.
+// ---------------------------------------------------------------------------
+
+/// dc_level is the flat pedestal every pixel sits on. The buffer is 16-bit, so
+/// it is rounded to the nearest count and clamped into range.
+TEST(SceneParamsDcLevel, IsRoundedAndClampedIntoPixelRange) {
+    SceneParams params = quiet_params();
+    params.dc_level = 100.6;
+    SceneSimulator simulator(8, 8, params, kSeed);
+    for (const Pixel pixel : render(simulator, 8, 8).pixels)
+        EXPECT_EQ(pixel, 101);
+
+    SceneParams dark = quiet_params();
+    dark.dc_level = -500.0;
+    SceneSimulator dark_simulator(4, 4, dark, kSeed);
+    EXPECT_EQ(render(dark_simulator, 4, 4).at(0, 0), 0);
+
+    SceneParams bright = quiet_params();
+    bright.dc_level = 70000.0;
+    SceneSimulator bright_simulator(4, 4, bright, kSeed);
+    EXPECT_EQ(render(bright_simulator, 4, 4).at(0, 0), 65535);
+}
+
+/// row_gradient adds a fixed step per row and nothing across a row; a ramp
+/// that goes below zero clamps rather than wraps.
+TEST(SceneParamsRowGradient, AddsALinearRampDownRowsOnlyAndClampsAtZero) {
+    SceneParams params = quiet_params();
+    params.dc_level = 100.0;
+    params.row_gradient = -10.0;
+    SceneSimulator simulator(16, 12, params, kSeed);
+
+    const Image image = render(simulator, 16, 12);
+
+    for (std::size_t r = 0; r < image.rows; ++r) {
+        const Pixel expected =
+            static_cast<Pixel>(std::max(0, 100 - 10 * static_cast<int>(r)));
+        for (std::size_t c = 0; c < image.columns; ++c)
+            EXPECT_EQ(image.at(r, c), expected)
+                << "at row " << r << ", column " << c;
+    }
+}
+
+/// NOTE: `mean` is handed to *both* the fixed-pattern distribution and the read
+/// noise distribution, so it lands on every pixel twice. This test pins the
+/// behavior as it stands; see the review note if a single offset was intended.
+TEST(SceneParamsMean, OffsetsEveryPixelOncePerNoiseSource) {
+    SceneParams params = quiet_params();
+    params.dc_level = 1000.0;
+    params.mean = 50.0;
+    SceneSimulator simulator(8, 8, params, kSeed);
+
+    for (const Pixel pixel : render(simulator, 8, 8).pixels)
+        EXPECT_EQ(pixel, 1100);
+}
+
+/// Fixed-pattern noise is per-pixel and, as the name says, fixed: drawn once
+/// at construction with the requested spread, then repeated in every frame.
+TEST(SceneParamsFpnSigma, IsFixedAcrossFramesWithTheRequestedSpread) {
+    SceneParams params = quiet_params();
+    params.dc_level = 10000.0;
+    params.fpn_sigma = 50.0;
+    SceneSimulator simulator(128, 128, params, kSeed);
+
+    const Image first = render(simulator, 128, 128, 0);
+    const Image second = render(simulator, 128, 128, 1);
+
+    EXPECT_EQ(first.pixels, second.pixels);
+    EXPECT_NEAR(mean_of(first.pixels), 10000.0, 5.0);
+    EXPECT_NEAR(stddev_of(first.pixels), 50.0, 5.0);
+}
+
+/// Read noise is redrawn per pixel per frame, so one pixel's history across
+/// frames has the requested spread where the fixed pattern would have none.
+TEST(SceneParamsReadSigma, SetsTheTemporalSpreadOfASinglePixel) {
+    constexpr std::size_t kFrames = 512;
+    SceneParams params = quiet_params();
+    params.dc_level = 10000.0;
+    params.read_sigma = 30.0;
+    SceneSimulator simulator(8, 8, params, kSeed);
+
+    std::vector<Pixel> history;
+    history.reserve(kFrames);
+    for (std::size_t frame = 0; frame < kFrames; ++frame)
+        history.push_back(
+            render(simulator, 8, 8, static_cast<FrameId>(frame)).at(3, 5));
+
+    EXPECT_NEAR(mean_of(history), 10000.0, 5.0);
+    EXPECT_NEAR(stddev_of(history), 30.0, 3.0);
+}
+
+/// dt converts a frame index into seconds. It only shows up through target
+/// motion, so this renders one moving target and looks at where its peak lands.
+std::pair<std::size_t, std::size_t> moving_peak(double dt, FrameId frame) {
+    SceneSimulator simulator = simulator_with(dt, {Target{.r0 = 10.0,
+                                                          .c0 = 50.0,
+                                                          .r_rate = 5.0,
+                                                          .c_rate = -4.0,
+                                                          .amplitude = 5000.0,
+                                                          .sigma = 4.0}});
+    return peak_of(render(simulator, kGrid, kGrid, frame));
+}
+
+TEST(SceneParamsDt, ScalesTheFrameIndexIntoSecondsOfTargetMotion) {
+    using Peak = std::pair<std::size_t, std::size_t>;
+    EXPECT_EQ(moving_peak(0.5, 0), (Peak{10, 50})) << "frame 0 is always t = 0";
+    EXPECT_EQ(moving_peak(0.5, 12), (Peak{40, 26}))
+        << "r0 + r_rate * 6 s, c0 + c_rate * 6 s";
+    EXPECT_EQ(moving_peak(0.25, 12), (Peak{25, 38}))
+        << "the same frame index at half the dt is half the distance";
+    EXPECT_EQ(moving_peak(0.0, 1000), (Peak{10, 50})) << "no dt, no motion";
+}
+
+/// The seed is what makes a run reproducible; it drives both noise sources.
+TEST(SceneSimulatorSeed, ReproducesAFrameExactlyAndDiffersAcrossSeeds) {
+    SceneParams params = quiet_params();
+    params.dc_level = 10000.0;
+    params.fpn_sigma = 50.0;
+    params.read_sigma = 30.0;
+
+    SceneSimulator a(32, 32, params, kSeed);
+    SceneSimulator b(32, 32, params, kSeed);
+    SceneSimulator c(32, 32, params, kSeed + 1);
+
+    EXPECT_EQ(render(a, 32, 32).pixels, render(b, 32, 32).pixels);
+    EXPECT_NE(render(a, 32, 32).pixels, render(c, 32, 32).pixels);
+}
+
+TEST(SceneSimulatorRender, RejectsABufferSmallerThanTheFrame) {
+    SceneSimulator simulator(8, 8, quiet_params(), kSeed);
+    std::vector<Pixel> too_small(8 * 8 - 1);
+    EXPECT_THROW(simulator.render(0, too_small), Error);
+
+    std::vector<Pixel> exact(8 * 8);
+    EXPECT_NO_THROW(simulator.render(0, exact));
+}
+
+// ---------------------------------------------------------------------------
+// Target rendering.
+// ---------------------------------------------------------------------------
+
+/// Every pixel of a two-target frame against the closed form
+/// sum_i A_i * exp(-d_i^2 / 2 sigma_i^2), rounded. One comparison implies the
+/// peak position and amplitude, symmetry, isotropy, monotone fall-off, the
+/// Gaussian integral and additivity, so none of those needs its own test.
+TEST(TargetRender, MatchesTheAnalyticGaussianPixelForPixel) {
+    const Target a{.r0 = 24.0,
+                   .c0 = 24.0,
+                   .r_rate = 0.0,
+                   .c_rate = 0.0,
+                   .amplitude = 2000.0,
+                   .sigma = 3.0};
+    const Target b{.r0 = 70.0,
+                   .c0 = 70.0,
+                   .r_rate = 0.0,
+                   .c_rate = 0.0,
+                   .amplitude = 800.0,
+                   .sigma = 2.0};
+    SceneSimulator simulator = simulator_with(1.0, {a, b});
+
+    const Image image = render(simulator, kGrid, kGrid);
+
+    EXPECT_EQ(image.at(24, 24), 2000) << "the peak is the amplitude";
+    EXPECT_EQ(image.at(70, 70), 800);
+
+    std::size_t mismatches = 0;
+    std::string first;
+    for (std::size_t r = 0; r < kGrid; ++r)
+        for (std::size_t c = 0; c < kGrid; ++c) {
+            double expected = 0.0;
+            for (const Target &t : {a, b}) {
+                const double dr = static_cast<double>(r) - t.r0;
+                const double dc = static_cast<double>(c) - t.c0;
+                expected += t.amplitude * std::exp(-(dr * dr + dc * dc) /
+                                                   (2.0 * t.sigma * t.sigma));
+            }
+            // Half a count is the rounding; the epsilon absorbs a value that
+            // sits exactly on a rounding boundary and could go either way.
+            if (std::abs(image.at(r, c) - expected) > 0.5 + 1e-6) {
+                if (mismatches++ == 0)
+                    first = "first at (" + std::to_string(r) + ", " +
+                            std::to_string(c) + "): got " +
+                            std::to_string(image.at(r, c)) + ", expected " +
+                            std::to_string(expected);
+            }
+        }
+    EXPECT_EQ(mismatches, 0u) << first;
+}
+
+// ---------------------------------------------------------------------------
+// getTargetRecords: the per-frame truth table that pairs with the imagery.
+// ---------------------------------------------------------------------------
+
+/// NOTE: pins the asymmetry as it stands: a simulator holding no targets at
+/// all throws, while one whose targets have all walked off the frame returns
+/// an empty table (see the test below).
 TEST(TargetRecords, ThrowsWhenNoTargetHasBeenAdded) {
     SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
 
     EXPECT_THROW(simulator.getTargetRecords(0), Error);
 }
 
-TEST(TargetRecords, ReturnsOneRecordPerTargetIdentifiedByInsertionOrder) {
-    SceneSimulator simulator = simulator_with(1.0, {static_target(10.0, 20.0),
-                                                    static_target(30.0, 40.0),
-                                                    static_target(50.0, 60.0)});
-
-    const std::vector<TruthRecord> records = simulator.getTargetRecords(0);
-
-    ASSERT_EQ(records.size(), 3u);
-    EXPECT_EQ(ids_of(records), (std::vector<std::uint32_t>{0, 1, 2}));
-    EXPECT_DOUBLE_EQ(records[0].row, 10.0);
-    EXPECT_DOUBLE_EQ(records[0].col, 20.0);
-    EXPECT_DOUBLE_EQ(records[2].row, 50.0);
-    EXPECT_DOUBLE_EQ(records[2].col, 60.0);
-}
-
-TEST(TargetRecords, StampsEveryRecordWithTheRequestedFrameId) {
-    SceneSimulator simulator = simulator_with(
-        1.0, {static_target(10.0, 20.0), static_target(30.0, 40.0)});
-
-    for (const std::uint32_t frame : {0u, 1u, 7u, 1000u}) {
-        const std::vector<TruthRecord> records =
-            simulator.getTargetRecords(frame);
-
-        ASSERT_EQ(records.size(), 2u) << "at frame " << frame;
-        for (const TruthRecord &record : records)
-            EXPECT_EQ(record.frame_id, frame);
-    }
-}
-
-TEST(TargetRecords, CarriesTheTargetAmplitude) {
-    SceneSimulator simulator =
-        simulator_with(1.0, {static_target(10.0, 20.0, 1234.0),
-                             static_target(30.0, 40.0, 250.0)});
-
-    const std::vector<TruthRecord> records = simulator.getTargetRecords(0);
-
-    ASSERT_EQ(records.size(), 2u);
-    EXPECT_DOUBLE_EQ(records[0].amplitude, 1234.0);
-    EXPECT_DOUBLE_EQ(records[1].amplitude, 250.0);
-}
-
-TEST(TargetRecords, AdvancesThePositionWithFrameIdAndDt) {
+/// One record per target, id by insertion order, stamped with the requested
+/// frame, positioned by r0 + r_rate * frame * dt, carrying the amplitude.
+TEST(TargetRecords, ReportsEveryFieldForEveryTargetAtTheRequestedFrame) {
     // Frame 8 at dt = 0.25 is t = 2 seconds.
     SceneSimulator simulator = simulator_with(0.25, {Target{.r0 = 20.0,
                                                             .c0 = 30.0,
                                                             .r_rate = 4.0,
                                                             .c_rate = 8.0,
                                                             .amplitude = 5000.0,
+                                                            .sigma = 4.0},
+                                                     Target{.r0 = 50.0,
+                                                            .c0 = 10.0,
+                                                            .r_rate = -2.0,
+                                                            .c_rate = 3.0,
+                                                            .amplitude = 1234.0,
                                                             .sigma = 4.0}});
 
     const std::vector<TruthRecord> records = simulator.getTargetRecords(8);
 
-    ASSERT_EQ(records.size(), 1u);
-    EXPECT_DOUBLE_EQ(records[0].row, 28.0) << "r0 + r_rate * frame * dt";
-    EXPECT_DOUBLE_EQ(records[0].col, 46.0) << "c0 + c_rate * frame * dt";
+    ASSERT_EQ(records.size(), 2u);
+    EXPECT_EQ(ids_of(records), (std::vector<TargetId>{0, 1}));
+    for (const TruthRecord &record : records)
+        EXPECT_EQ(record.frame_id, 8u);
+    EXPECT_DOUBLE_EQ(records[0].row, 28.0) << "20 + 4 * 2";
+    EXPECT_DOUBLE_EQ(records[0].col, 46.0) << "30 + 8 * 2";
+    EXPECT_DOUBLE_EQ(records[0].amplitude, 5000.0);
+    EXPECT_DOUBLE_EQ(records[1].row, 46.0) << "50 - 2 * 2";
+    EXPECT_DOUBLE_EQ(records[1].col, 16.0) << "10 + 3 * 2";
+    EXPECT_DOUBLE_EQ(records[1].amplitude, 1234.0);
 }
 
 /// The truth table is only worth anything if it names the pixel the target was
@@ -562,27 +376,22 @@ TEST(TargetRecords, AgreeWithWhereTheTargetIsRendered) {
     EXPECT_EQ(peak_column, static_cast<std::size_t>(records[0].col));
 }
 
-TEST(TargetRecords, ReturnsAnEmptyTableOnceEveryTargetHasLeftTheFrame) {
-    // Note the asymmetry being pinned down here: a simulator holding no targets
-    // at all throws, while one whose targets have all walked off the frame
-    // returns an empty table.
-    SceneSimulator simulator = simulator_with(1.0, {departing_target()});
-
-    EXPECT_EQ(simulator.getTargetRecords(0).size(), 1u);
-    EXPECT_TRUE(simulator.getTargetRecords(1).empty())
-        << "row 100 is past the last row of a " << kGrid << "-row frame";
-}
-
-TEST(TargetRecords, KeepsTargetIdsStableWhenAnEarlierTargetLeaves) {
+/// A target that has left the frame drops out of the table without renumbering
+/// the ones that remain; once every target has left, the table is empty.
+TEST(TargetRecords, KeepsIdsStableAndDropsTargetsThatHaveLeftTheFrame) {
     SceneSimulator simulator =
         simulator_with(1.0, {static_target(10.0, 10.0), departing_target(),
                              static_target(50.0, 50.0)});
 
     EXPECT_EQ(ids_of(simulator.getTargetRecords(0)),
-              (std::vector<std::uint32_t>{0, 1, 2}));
+              (std::vector<TargetId>{0, 1, 2}));
     EXPECT_EQ(ids_of(simulator.getTargetRecords(1)),
-              (std::vector<std::uint32_t>{0, 2}))
+              (std::vector<TargetId>{0, 2}))
         << "an id must stay the insertion index, not the row of the table";
+
+    SceneSimulator alone = simulator_with(1.0, {departing_target()});
+    EXPECT_TRUE(alone.getTargetRecords(1).empty())
+        << "row 100 is past the last row of a " << kGrid << "-row frame";
 }
 
 TEST(TargetRecords, IncludesTheFirstPixelAndExcludesTheOneJustPastTheLast) {
@@ -596,7 +405,7 @@ TEST(TargetRecords, IncludesTheFirstPixelAndExcludesTheOneJustPastTheLast) {
                             });
 
     EXPECT_EQ(ids_of(simulator.getTargetRecords(0)),
-              (std::vector<std::uint32_t>{0, 1}))
+              (std::vector<TargetId>{0, 1}))
         << "the frame is inclusive of 0 and exclusive of rows_ / columns_";
 }
 
