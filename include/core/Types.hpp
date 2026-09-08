@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <mdspan>
 
@@ -13,7 +14,14 @@ using FrameId = std::uint32_t;
 /// Identifies a target across frames.
 using TargetId = std::uint32_t;
 
+///
+/// What a two-dimensional view means everywhere in this project: dynamic
+/// extents, size_t indices, row-major. Each layer names its own element types
+/// on top of this rather than restating the convention.
+///
+template <class T> using Plane = std::mdspan<T, std::dextents<std::size_t, 2>>;
+
 ///  A span to navigate a frames contents by row and col
-using FrameSpan = std::mdspan<const Pixel, std::dextents<std::size_t, 2>>;
+using FrameSpan = Plane<const Pixel>;
 
 } // namespace opir

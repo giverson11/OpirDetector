@@ -32,3 +32,13 @@ target_include_directories(scitec_frame_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR
 scitect_set_warnings(scitec_frame_tests)
 
 gtest_discover_tests(scitec_frame_tests)
+
+add_executable(scitec_detect_tests
+    detect/CfarTest.cpp
+    detect/ClusterTest.cpp
+)
+target_link_libraries(scitec_detect_tests PRIVATE scitec_detect GTest::gtest_main)
+target_include_directories(scitec_detect_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+scitect_set_warnings(scitec_detect_tests)
+
+gtest_discover_tests(scitec_detect_tests)

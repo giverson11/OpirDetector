@@ -1,19 +1,21 @@
 #include "detect/Cfar.hpp"
+#include "core/Types.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 
 namespace opir {
 namespace {
 const double kMinVariance = 1e-9;
 
-struct LocalStats {
+struct MeanSigma {
     double mean, sigma;
 };
 
 // Mean and standard deviation of the reference ring around (r,c),
 // excluding the guard band so target energy doesn't corrupt the estimate.
-LocalStats ring_stats(FrameSpan px, size_t r, size_t c, const CfarParams &p) {
+MeanSigma ring_stats(FrameSpan px, size_t r, size_t c, const CfarParams &p) {
     double sum = 0.0, sum_sq = 0.0;
     int n = 0;
 
@@ -38,12 +40,15 @@ LocalStats ring_stats(FrameSpan px, size_t r, size_t c, const CfarParams &p) {
 }
 } // namespace
 
-void cfar_threshold(FrameSpan px, const CfarParams &p, std::span<uint8_t> mask,
-                    std::span<float> bg) {
-    const size_t rows = static_cast<size_t>(px.extent(0));
-    const size_t cols = static_cast<size_t>(px.extent(1));
+void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
+                    Plane<float> bg, Plane<float> sg) {
+    const size_t rows = px.extent(0);
+    const size_t cols = px.extent(1);
     const size_t ref = static_cast<size_t>(p.ref);
-    std::ranges::fill(mask, 0);
+
+    // An mdspan is not a range, but this layout is contiguous, so a flat view
+    // over the same storage is what the range algorithms want.
+    std::fill(mask.data_handle(), mask.data_handle() + mask.size(), uint8_t{0});
 
     // Border pixels are skipped: their reference window would fall outside the
     // frame.
@@ -52,8 +57,9 @@ void cfar_threshold(FrameSpan px, const CfarParams &p, std::span<uint8_t> mask,
             const auto [mean, sigma] = ring_stats(px, r, c, p);
             const double threshold = mean + p.k * sigma;
 
-            bg[r * cols + c] = static_cast<float>(mean);
-            mask[r * cols + c] = (px[r, c] > threshold) ? 1 : 0;
+            sg[r, c] = static_cast<float>(sigma);
+            bg[r, c] = static_cast<float>(mean);
+            mask[r, c] = (px[r, c] > threshold) ? 1 : 0;
         }
     }
 }
