@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string_view>
 #include <format>
+#include <string_view>
 namespace opir {
 
 enum class ParseError {
@@ -34,7 +34,7 @@ constexpr std::string_view to_string(ParseError e) {
 
 template <>
 struct std::formatter<opir::ParseError> : std::formatter<std::string_view> {
-    auto format(opir::ParseError e, auto& ctx) const {
+    auto format(opir::ParseError e, auto &ctx) const {
         return std::formatter<std::string_view>::format(to_string(e), ctx);
     }
 };

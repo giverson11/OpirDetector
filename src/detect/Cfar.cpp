@@ -40,7 +40,7 @@ MeanSigma ring_stats(FrameSpan px, size_t r, size_t c, const CfarParams &p) {
 }
 } // namespace
 
-void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
+void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<std::uint8_t> mask,
                     Plane<double> bg, Plane<double> sg) {
     const size_t rows = px.extent(0);
     const size_t cols = px.extent(1);

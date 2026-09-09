@@ -26,6 +26,6 @@ struct CfarParams {
 /// \param bg local mean, written only on the interior
 /// \param sg local sigma, written only on the interior
 ///
-void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
+void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<std::uint8_t> mask,
                     Plane<double> bg, Plane<double> sg);
 } // namespace opir
