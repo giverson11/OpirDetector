@@ -4,6 +4,7 @@
 #include "filter/Tracker.hpp"
 #include "frame/FrameReader.hpp"
 #include "sim/TruthWriter.hpp"
+#include <alloca.h>
 #include <cstddef>
 #include <cstdio>
 #include <exception>
@@ -33,30 +34,50 @@ int run(std::vector<std::string_view> arguments) {
         std::println(stderr, "{}", data.error());
         return 2;
     }
-    const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
-
-    std::vector<std::uint8_t> mask(rows * cols);
-    std::vector<double> bg(rows * cols);
-    std::vector<double> sg(rows * cols);
-    std::vector<std::uint32_t> labels(rows * cols);
-    std::vector<std::size_t> stack{};
-
-    cfar_threshold(data->px, CfarParams{},
-                   Plane<std::uint8_t>{mask.data(), rows, cols},
-                   Plane<double>{bg.data(), rows, cols},
-                   Plane<double>{sg.data(), rows, cols});
-
-    auto labelCount =
-        label_clusters(Plane<std::uint8_t>{mask.data(), rows, cols},
-                       Plane<std::uint32_t>{labels.data(), rows, cols}, stack);
-
-    auto dets = centroid_clusters(
-        data->px, Plane<std::uint32_t>{labels.data(), rows, cols}, labelCount,
-        Plane<const double>{bg.data(), rows, cols},
-        Plane<const double>{sg.data(), rows, cols}, ClusterParams{}, data->id);
-
+    // The tracker, and the scratch these stages write into, live across the
+    // whole stream: a track needs TrackParams::confirm_hits frames of evidence
+    // before it is reported.
     Tracker track{TrackParams{}};
-    track.step(data->id, data->t, dets);
+    std::vector<std::uint8_t> mask;
+    std::vector<double> bg, sg;
+    std::vector<std::uint32_t> labels;
+    std::vector<std::size_t> stack;
+    double prev_t = data->t;
+
+    while (data) {
+        const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
+
+        mask.assign(rows * cols, 0);
+        bg.assign(rows * cols, 0.0);
+        sg.assign(rows * cols, 0.0);
+        labels.assign(rows * cols, 0);
+
+        cfar_threshold(data->px, CfarParams{},
+                       Plane<std::uint8_t>{mask.data(), rows, cols},
+                       Plane<double>{bg.data(), rows, cols},
+                       Plane<double>{sg.data(), rows, cols});
+
+        auto labelCount = label_clusters(
+            Plane<std::uint8_t>{mask.data(), rows, cols},
+            Plane<std::uint32_t>{labels.data(), rows, cols}, stack);
+
+        auto dets = centroid_clusters(
+            data->px, Plane<std::uint32_t>{labels.data(), rows, cols},
+            labelCount, Plane<const double>{bg.data(), rows, cols},
+            Plane<const double>{sg.data(), rows, cols}, ClusterParams{},
+            data->id);
+
+        // step() wants the gap since the previous frame, not the timestamp.
+        const double dt = data->t - prev_t;
+        prev_t = data->t;
+        auto report = track.step(data->id, dt, dets);
+
+        for (auto &r : report) {
+            std::println("{}: {}, {}, {}, {} ", r.frame_id, r.row, r.col,
+                         r.v_row, r.v_col);
+        }
+        data = frameData.next();
+    }
 
     return 0;
 }

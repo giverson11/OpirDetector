@@ -44,8 +44,8 @@ int run() {
 
     simulator.add_target(Target{.r0 = 24.0,
                                 .c0 = 24.0,
-                                .r_rate = 0.0,
-                                .c_rate = 0.0,
+                                .r_rate = 5.0,
+                                .c_rate = 5.0,
                                 .amplitude = 2000.0,
                                 .sigma = 3.0});
 
