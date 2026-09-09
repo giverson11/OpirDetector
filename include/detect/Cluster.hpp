@@ -57,4 +57,5 @@ centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
                   std::size_t n_labels, Plane<const double> bg,
                   Plane<const double> sg, const ClusterParams &p,
                   FrameId frame_id);
+
 } // namespace opir

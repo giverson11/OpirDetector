@@ -1,0 +1,345 @@
+#include / track / Filter.hpp
+
+#pragma once
+
+#include "detect/Cluster.hpp"
+
+namespace opir {
+
+///
+/// Constant-velocity estimate of one target, in pixels and p
+///
+struct TrackState {
+    double row, col;
+    double v_row, v_col;
+};
+
+///
+/// Tuning for the alpha-beta filter: fixed gains, so it neve
+/// much to trust itself. Cheap, and fine while targets really do fly straight.
+///
+struct AlphaBetaParams {
+    double alpha = 0.6; // fraction of each residual applied
+    double beta = 0.2;  // fraction applied to velocity, per second
+};
+
+///
+/// Tuning for the Kalman filter. q and r set how quickly the gains settle:
+/// large q keeps the filter nimble, large r makes it distrus
+///
+struct KalmanParams {
+    double q = 1.0;        // process noise, accel spectral density px^2/s^3
+    double r = 0.25;       // centroid variance px^2, ~(0.5 p
+    double p0_pos = 1.0;   // initial position variance
+    double p0_vel = 100.0; // initial velocity variance: unkn
+};
+
+///
+/// Alpha-beta: predict along the current velocity, then pull
+/// detection by a fixed fraction. The velocity gain needs the elapsed time,
+/// so predict() remembers it for the update() that follows.
+///
+class AlphaBetaFilter {
+    TrackState x_;
+    AlphaBetaParams p_;
+    double dt_ = 0.0;
+
+  public:
+    AlphaBetaFilter(const Detection &d, AlphaBetaParams p = {
+        void predict(double dt);
+
+        ///
+        /// Pixel distance from the predicted position; gate it in pixels.
+        ///
+        double distance(const Detection &d) const;
+
+        void update(const Detection &d);
+
+        const TrackState &state() const { return x_; }
+};
+
+///
+/// Kalman: same model, but it carries a covariance and derives the gains from
+/// it each step, so it starts aggressive and settles as evid
+/// and col are independent axes with identical dynamics, so this is two
+/// 2-state filters rather than one 4-state one and needs no
+///
+class KalmanFilter {
+        struct Axis {
+            double p, v;          // position, velocity
+            double P00, P01, P11; // covariance, symmetric
+        };
+        Axis row_, col_;
+        KalmanParams k_;
+
+        void predict_axis(Axis & a, double dt) const;
+        void update_axis(Axis & a, double z) const;
+
+      public:
+        KalmanFilter(const Detection &d, KalmanParams k = {});
+
+        void predict(double dt);
+
+        ///
+        /// Normalised innovation squared, chi-square with two degrees of
+        /// freedom: gate at ~9.2 for 99%. A track that has coasted has a and so
+        /// a wider gate, without anyone tuning it.
+        ///
+        double distance(const Detection &d) const;
+
+        void update(const Detection &d);
+
+        TrackState state() const { return {row_.p, col_.p, row_.v, col_.v}; }
+};
+
+} // namespace opir
+
+    src /
+    track /
+    Filter.cpp
+
+#include "track/Filter.hpp"
+
+#include <cmath>
+
+    namespace opir {
+
+AlphaBetaFilter::AlphaBetaFilter(const Detection &d, AlphaBet
+    : x_{d.row, d.col, 0.0, 0.0}, p_{p} {}
+
+void AlphaBetaFilter::predict(double dt) {
+        x_.row += x_.v_row * dt;
+        x_.col += x_.v_col * dt;
+        dt_ = dt;
+}
+
+double AlphaBetaFilter::distance(const Detection &d) const {
+        return std::hypot(d.row - x_.row, d.col - x_.col);
+}
+
+void AlphaBetaFilter::update(const Detection &d) {
+        const double r_res = d.row - x_.row;
+        const double c_res = d.col - x_.col;
+        x_.row += p_.alpha * r_res;
+        x_.col += p_.alpha * c_res;
+        if (dt_ > 0.0) {
+            x_.v_row += p_.beta * r_res / dt_;
+            x_.v_col += p_.beta * c_res / dt_;
+        }
+}
+
+KalmanFilter::KalmanFilter(const Detection &d, KalmanParams k
+    : row_{d.row, 0.0, k.p0_pos, 0.0, k.p0_vel},
+      col_{d.col, 0.0, k.p0_pos, 0.0, k.p0_vel}, k_{k} {}
+
+void KalmanFilter::predict_axis(Axis &a, double dt) const {
+        const double dt2 = dt * dt, dt3 = dt2 * dt, dt4 = dt3 * dt;
+        // x = F x with F = [[1, dt], [0, 1]]
+        a.p += a.v * dt;
+        // P = F P F^T + Q with Q = q [[dt^4/4, dt^3/2], [dt^3/2,
+        const double P00 =
+            a.P00 + 2 * dt * a.P01 + dt2 * a.P11 + k_.q * dt4 / 4;
+        const double P01 = a.P01 + dt * a.P11 + k_.q * dt3 / 2;
+        const double P11 = a.P11 + k_.q * dt2;
+        a.P00 = P00;
+        a.P01 = P01;
+        a.P11 = P11;
+}
+
+void KalmanFilter::update_axis(Axis &a, double z) const {
+        // H = [1, 0]: only position is observed, so the innovati
+        // variance are scalars and the gain is a pair.
+        const double y = z - a.p;
+        const double S = a.P00 + k_.r;
+        const double K0 = a.P00 / S;
+        const double K1 = a.P01 / S;
+        a.p += K0 * y;
+        a.v += K1 * y;
+        // P = (I - K H) P
+        const double P00 = (1 - K0) * a.P00;
+        const double P01 = (1 - K0) * a.P01;
+        const double P11 = a.P11 - K1 * a.P01;
+        a.P00 = P00;
+        a.P01 = P01;
+        a.P11 = P11;
+}
+
+void KalmanFilter::predict(double dt) {
+        predict_axis(row_, dt);
+        predict_axis(col_, dt);
+}
+
+double KalmanFilter::distance(const Detection &d) const {
+        const double yr = d.row - row_.p, yc = d.col - col_.p;
+    return yr * yr / (row_.P00 + k_.r) + yc * yc / (col_.P00
+}
+
+void KalmanFilter::update(const Detection &d) {
+        update_axis(row_, d.row);
+        update_axis(col_, d.col);
+}
+
+} // namespace opir
+
+include / track /
+    Tracker.hpp
+
+#pragma once
+
+#include "core/Types.hpp"
+#include "detect/Cluster.hpp"
+#include "track/Filter.hpp"
+
+#include <cstddef>
+#include <span>
+#include <vector>
+
+    namespace opir {
+
+    // The estimator every track carries. AlphaBetaFilter is a dr
+    // gate below is then in pixels rather than sigmas.
+    using Filter = KalmanFilter;
+
+    ///
+    /// Tuning for track life: how close a detection has to fall to be claimed,
+    /// and how many frames of evidence open and close a track.
+    ///
+    struct TrackParams {
+        double gate = 9.21; // max Filter::distance to associate; chi^2(2), 99%
+        int confirm_hits = 3; // hits before a track is reported
+        int max_misses = 3;   // consecutive coasts before a track is dropped
+    };
+
+    ///
+    /// One tracked object: its filter plus the bookkeeping that decides whether
+    /// it is real yet and whether it is still alive.
+    ///
+    struct Track {
+        TrackId id;
+        Filter filter;
+        int hits = 1;   // detections claimed so far
+        int misses = 0; // consecutive frames without one
+    };
+
+    ///
+    /// A confirmed track's estimate at one frame. Mirrors TruthR
+    /// can be scored side by side.
+    ///
+    struct TrackRecord {
+        FrameId frame_id;
+        TrackId track_id;
+        double row, col;
+        double v_row, v_col;
+    };
+
+    ///
+    /// Carries tracks from frame to frame. Association is greedy nearest
+    /// neighbour: every in-gate track/detection pair is scored,
+    /// claimed best-first until nothing within the gate is left.
+    ///
+    class Tracker {
+        struct Pair {
+            bool tentative; // unconfirmed tracks claim only what is left over
+            double cost;
+            std::size_t track, det;
+        };
+
+        TrackParams params_;
+        std::vector<Track> tracks_;
+        TrackId next_id_ = 1;
+
+        // Scratch reused across frames, like the cluster stack.
+        std::vector<Pair> pairs_;
+        std::vector<bool> track_taken_, det_taken_;
+
+      public:
+        explicit Tracker(TrackParams params = {}) : params_{params} {}
+
+        ///
+        /// Advances every track by dt, claims detections, births
+        /// tracks, and reports the confirmed ones.
+        ///
+        /// @param frame
+        /// @param dt seconds since the previous call
+        /// @param dets this frame's output from centroid_clusters
+        /// @return one record per confirmed track, whether or no
+        ///
+        std::vector<TrackRecord> step(FrameId frame, double dt,
+                                      std::span<const Detection> dets);
+
+        std::span<const Track> tracks() const { return tracks_; }
+    };
+
+} // namespace opir
+
+src / track /
+    Tracker.cpp
+
+#include "track/Tracker.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <utility>
+
+    namespace opir {
+
+    std::vector<TrackRecord> Tracker::step(
+        FrameId frame, double std::span<const Detection> dets) {
+        for (auto &t : tracks_)
+            t.filter.predict(dt);
+
+        // Score every pair that falls inside the gate.
+        pairs_.clear();
+        for (std::size_t ti = 0; ti < tracks_.size(); ++ti)
+            for (std::size_t di = 0; di < dets.size(); ++di) {
+                const double cost = tracks_[ti].filter.distance(dets[di]);
+                if (cost <= params_.gate)
+                pairs_.push_back(
+                    {tracks_[ti].hits < params_.confirm_hits,
+        }
+
+    // Confirmed tracks claim first, best pair first. Without the first rule a
+    // newborn track's wide covariance makes every detection
+    // and it steals from the established track beside it. Sorting also makes
+    // the result independent of the order tracks and detecti
+    std::ranges::sort(pairs_, {}, [](const Pair &p) {
+                        return std::pair{p.tentative, p.cost};
+    });
+    track_taken_.assign(tracks_.size(), false);
+    det_taken_.assign(dets.size(), false);
+    for (const auto &[tentative, cost, ti, di] : pairs_) {
+                        if (track_taken_[ti] || det_taken_[di])
+                            continue;
+                        track_taken_[ti] = det_taken_[di] = true;
+                        auto &t = tracks_[ti];
+                        t.filter.update(dets[di]);
+                        ++t.hits;
+                        t.misses = 0;
+    }
+
+    for (std::size_t ti = 0; ti < tracks_.size(); ++ti)
+        if (!track_taken_[ti])
+            ++tracks_[ti].misses;
+
+    // A detection nobody claimed starts a tentative track.
+    for (std::size_t di = 0; di < dets.size(); ++di)
+        if (!det_taken_[di])
+            tracks_.push_back({next_id_++, Filter{dets[di]}});
+
+    std::erase_if(
+        tracks_, [&](const Track &t) {
+                        return t.misses > para
+
+                                              std::vector<TrackRecord>
+                                                  out;
+                        for (const auto &t : tracks_) {
+                            if (t.hits < params_.confirm_hits)
+                                continue;
+                            const TrackState s = t.filter.state();
+                            out.push_back(
+                                {frame, t.id, s.row, s.col, s.v_row, s.v_col});
+                        }
+                        return out;
+}
+
+            } // namespace opir

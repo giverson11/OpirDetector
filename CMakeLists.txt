@@ -38,6 +38,13 @@ add_library(scitec_core INTERFACE)
 target_include_directories(scitec_core INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
+add_library(scitec_filter
+src/filter/AlphaBeta.cpp
+src/filter/Tracker.cpp
+)
+
+target_link_libraries(scitec_filter PUBLIC scitec_detect)
+scitect_set_warnings(scitec_filter)
 
 add_library(scitec_detect
 src/detect/Cfar.cpp

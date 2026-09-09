@@ -92,4 +92,5 @@ centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
     }
     return dets;
 }
+
 } // namespace opir

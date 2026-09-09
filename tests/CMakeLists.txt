@@ -42,3 +42,13 @@ target_include_directories(scitec_detect_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DI
 scitect_set_warnings(scitec_detect_tests)
 
 gtest_discover_tests(scitec_detect_tests)
+
+add_executable(scitec_filter_tests
+    filter/AlphaBetaTest.cpp
+    filter/TrackerTest.cpp
+)
+target_link_libraries(scitec_filter_tests PRIVATE scitec_filter GTest::gtest_main)
+target_include_directories(scitec_filter_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+scitect_set_warnings(scitec_filter_tests)
+
+gtest_discover_tests(scitec_filter_tests)
