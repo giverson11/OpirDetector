@@ -48,7 +48,7 @@ void Tracker::spawn(std::span<const Detection> dets) {
             tracks_.push_back({AlphaBetaFilter{dets[di].row, dets[di].col}});
 }
 
-void Tracker::cull() {
+void Tracker::cleanup() {
     std::erase_if(
         tracks_, [&](const Track &t) { return t.misses > params_.max_misses; });
 }
@@ -69,7 +69,7 @@ std::vector<TrackRecord> Tracker::step(FrameId frame, double dt,
     predict_all(dt);
     associate(dt, dets);
     spawn(dets);
-    cull();
+    cleanup();
     return report(frame);
 }
 

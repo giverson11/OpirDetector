@@ -55,7 +55,7 @@ class Tracker {
     void predict_all(double dt);
     void associate(double dt, std::span<const Detection> dets);
     void spawn(std::span<const Detection> dets);
-    void cull();
+    void cleanup();
     std::vector<TrackRecord> report(FrameId frame) const;
 
   public:
