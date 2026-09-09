@@ -32,8 +32,6 @@ int run(std::vector<std::string_view> arguments) {
         return 2;
     }
 
-
-
     return 0;
  }
 } // namespace
