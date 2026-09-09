@@ -20,11 +20,11 @@ struct CfarParams {
 /// Flags every pixel standing k sigmas above its own local background, and
 /// hands back the noise model it used so a later stage can score a detection.
 ///
-/// @param px
-/// @param p
-/// @param mask cleared in full; set only on the interior
-/// @param bg local mean, written only on the interior
-/// @param sg local sigma, written only on the interior
+/// \param px
+/// \param p
+/// \param mask cleared in full; set only on the interior
+/// \param bg local mean, written only on the interior
+/// \param sg local sigma, written only on the interior
 ///
 void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<uint8_t> mask,
                     Plane<double> bg, Plane<double> sg);

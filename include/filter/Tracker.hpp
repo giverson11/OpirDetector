@@ -65,10 +65,10 @@ class Tracker {
     /// Advances every track by dt, claims detections, births and buries
     /// tracks, and reports the confirmed ones.
     ///
-    /// @param frame
-    /// @param dt seconds since the previous call
-    /// @param dets this frame's output from centroid_clusters
-    /// @return one record per confirmed track, whether or not it was hit
+    /// \param frame
+    /// \param dt seconds since the previous call
+    /// \param dets this frame's output from centroid_clusters
+    /// \return one record per confirmed track, whether or not it was hit
     ///
     std::vector<TrackRecord> step(FrameId frame, double dt,
                                   std::span<const Detection> dets);

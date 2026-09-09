@@ -29,7 +29,7 @@ class AlphaBetaFilter {
     int updates_ = 1; // the constructor's position is the first measurement
 
   public:
-    /// @throws Error if the gains fall outside the stable region
+    /// \throws Error if the gains fall outside the stable region
     AlphaBetaFilter(double row, double col, AlphaBetaParams p = {});
 
     void predict(double dt);
@@ -37,7 +37,7 @@ class AlphaBetaFilter {
     /// Pixels between a detection and the current prediction.
     double distance(double row, double col) const;
 
-    /// @param dt seconds since the predict() this corrects; must be positive
+    /// \param dt seconds since the predict() this corrects; must be positive
     ///           for the velocity term to be applied
     void update(double dt, double row, double col);
 

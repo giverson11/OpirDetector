@@ -22,9 +22,9 @@ class FrameWriter {
     /// that they agree with the truth table written alongside; nothing here
     /// invents them.
     ///
-    /// @param id
-    /// @param timestamp_s seconds since the start of the capture
-    /// @param pixels at least rows * cols samples; any surplus is ignored
+    /// \param id
+    /// \param timestamp_s seconds since the start of the capture
+    /// \param pixels at least rows * cols samples; any surplus is ignored
     ///
     void write_frame(FrameId id, double timestamp_s,
                      std::span<const Pixel> pixels);

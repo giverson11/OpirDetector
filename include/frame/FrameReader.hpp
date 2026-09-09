@@ -31,7 +31,7 @@ class FrameReader {
     ///
     /// Reads the next frame, or reports why it could not.
     ///
-    /// @return EndOfStream once the file is exhausted, which is the normal way
+    /// \return EndOfStream once the file is exhausted, which is the normal way
     ///         a read loop finishes rather than a failure.
     ///
     std::expected<FrameView, ParseError> next();
