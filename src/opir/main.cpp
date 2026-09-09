@@ -1,3 +1,4 @@
+#include "core/ParseError.hpp"
 #include "core/Types.hpp"
 #include "detect/Cfar.hpp"
 #include "detect/Cluster.hpp"
@@ -29,11 +30,6 @@ int run(std::vector<std::string_view> arguments) {
 
     FrameReader frameData{SCENE_DATA_FILE};
 
-    auto data = frameData.next();
-    if (!data) {
-        std::println(stderr, "{}", data.error());
-        return 2;
-    }
     // The tracker, and the scratch these stages write into, live across the
     // whole stream: a track needs TrackParams::confirm_hits frames of evidence
     // before it is reported.
@@ -42,17 +38,23 @@ int run(std::vector<std::string_view> arguments) {
     std::vector<double> bg, sg;
     std::vector<std::uint32_t> labels;
     std::vector<std::size_t> stack;
-    double prev_t = data->t;
 
-    while (data) {
+    auto data = frameData.next();
+    double prev_t = data ? data->t : 0;
+
+    for (; data; data = frameData.next()) {
+
         const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
 
         mask.assign(rows * cols, 0);
         bg.assign(rows * cols, 0.0);
         sg.assign(rows * cols, 0.0);
         labels.assign(rows * cols, 0);
+        stack.clear();
 
-        cfar_threshold(data->px, CfarParams{},
+        // The guard band has to clear the PSF, or a target's own skirt lands
+        // in its reference ring and inflates the sigma it is measured against.
+        cfar_threshold(data->px, CfarParams{.guard = 9, .ref = 14},
                        Plane<std::uint8_t>{mask.data(), rows, cols},
                        Plane<double>{bg.data(), rows, cols},
                        Plane<double>{sg.data(), rows, cols});
@@ -64,8 +66,11 @@ int run(std::vector<std::string_view> arguments) {
         auto dets = centroid_clusters(
             data->px, Plane<std::uint32_t>{labels.data(), rows, cols},
             labelCount, Plane<const double>{bg.data(), rows, cols},
-            Plane<const double>{sg.data(), rows, cols}, ClusterParams{},
-            data->id);
+            Plane<const double>{sg.data(), rows, cols},
+            // A sigma = 3 PSF at this amplitude clears the threshold out to
+            // ~6.6 px, so a single point target lands ~140 px of mask. The
+            // default cap of 25 is sized for a much tighter PSF.
+            ClusterParams{.min_cluster = 2, .max_cluster = 200}, data->id);
 
         // step() wants the gap since the previous frame, not the timestamp.
         const double dt = data->t - prev_t;
@@ -73,13 +78,14 @@ int run(std::vector<std::string_view> arguments) {
         auto report = track.step(data->id, dt, dets);
 
         for (auto &r : report) {
-            std::println("{}: {}, {}, {}, {} ", r.frame_id, r.row, r.col,
-                         r.v_row, r.v_col);
+            std::println("(Frame: {}, Item: {}) => {}, {}, {}, {} ", r.frame_id,
+                         r.track_id, r.row, r.col, r.v_row, r.v_col);
         }
-        data = frameData.next();
     }
-
-    return 0;
+    if (data.error() == ParseError::EndOfStream)
+        return 0;
+    std::println(stderr, "{}", data.error());
+    return 2;
 }
 } // namespace
 } // namespace opir

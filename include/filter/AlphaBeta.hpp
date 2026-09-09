@@ -35,7 +35,7 @@ class AlphaBetaFilter {
     void predict(double dt);
 
     /// Pixels between a detection and the current prediction.
-    double distance(double row, double col) const;
+    double error_magnitude(double row, double col) const;
 
     /// \param dt seconds since the predict() this corrects; must be positive
     ///           for the velocity term to be applied

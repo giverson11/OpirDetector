@@ -9,8 +9,6 @@ uint32_t label_clusters(Plane<const std::uint8_t> mask,
                         Plane<std::uint32_t> labels,
                         std::vector<std::size_t> &stack) {
     const std::size_t rows = mask.extent(0), cols = mask.extent(1);
-    std::fill(labels.data_handle(), labels.data_handle() + labels.size(),
-              uint32_t{0});
     std::uint32_t label = 0;
 
     for (std::size_t r = 0; r < rows; ++r) {
@@ -19,7 +17,6 @@ uint32_t label_clusters(Plane<const std::uint8_t> mask,
                 continue;
 
             ++label;
-            stack.clear();
             stack.push_back(r * cols + c);
             labels[r, c] = label;
 

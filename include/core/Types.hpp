@@ -14,6 +14,8 @@ using FrameId = std::uint32_t;
 /// Identifies a target across frames.
 using TargetId = std::uint32_t;
 
+using TrackId = std::uint32_t;
+
 ///
 /// What a two-dimensional view means everywhere in this project: dynamic
 /// extents, size_t indices, row-major. Each layer names its own element types

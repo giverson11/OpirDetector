@@ -26,7 +26,7 @@ TEST(AlphaBetaFilter, TakesItsVelocityFromTheSecondDetection) {
 
     f.predict(0.5);
     EXPECT_DOUBLE_EQ(f.state().row, 10.0) << "no velocity means no motion";
-    EXPECT_DOUBLE_EQ(f.distance(13.0, 24.0), 5.0) << "hypot(3, 4)";
+    EXPECT_DOUBLE_EQ(f.error_magnitude(13.0, 24.0), 5.0) << "hypot(3, 4)";
 
     f.update(0.5, 15.0, 24.0);
     EXPECT_DOUBLE_EQ(f.state().row, 15.0);

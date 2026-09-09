@@ -2,7 +2,6 @@
 #include "core/Io.hpp"
 #include "sim/SceneSimulator.hpp"
 
-#include <cstddef>
 #include <format>
 #include <span>
 

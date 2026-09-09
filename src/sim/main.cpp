@@ -21,9 +21,9 @@
 namespace opir {
 namespace {
 
-constexpr size_t kRows = 100;
-constexpr size_t kColumns = 100;
-constexpr FrameId kLastFrameId = 10;
+constexpr size_t kRows = 1000;
+constexpr size_t kColumns = 1000;
+constexpr FrameId kLastFrameId = 100;
 
 constexpr uint64_t kSeed = 42;
 
@@ -41,14 +41,19 @@ int run() {
     TruthWriter truthWriter = TruthWriter{TRUTH_CSV_FILE};
 
     SceneSimulator simulator(kRows, kColumns, params, kSeed);
-
-    simulator.add_target(Target{.r0 = 24.0,
-                                .c0 = 24.0,
-                                .r_rate = 5.0,
-                                .c_rate = 5.0,
-                                .amplitude = 2000.0,
-                                .sigma = 3.0});
-
+    // Targets have to clear the detector's CFAR reference window, not just each
+    // other's PSF. That window is a square annulus, so the separation that
+    // counts is max(|dr|, |dc|), and it has to exceed the window's outer
+    // half-width plus the PSF skirt. A 2x2 layout 44 px apart clears it with
+    // room to spare; a diagonal line would not fit four in a 100x100 frame.
+    for (int i = 0; i < 4; ++i) {
+        simulator.add_target(Target{.r0 = 24.0 + 44.0 * (i / 2),
+                                    .c0 = 24.0 + 44.0 * (i % 2),
+                                    .r_rate = 1.0,
+                                    .c_rate = 1.0,
+                                    .amplitude = 2000.0,
+                                    .sigma = 3.0});
+    }
     std::vector<Pixel> buffer(kRows * kColumns);
 
     for (FrameId frame = 0; frame < kLastFrameId; frame++) {

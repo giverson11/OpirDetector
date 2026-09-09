@@ -19,10 +19,10 @@ void Tracker::associate(double dt, std::span<const Detection> dets) {
     for (std::size_t ti = 0; ti < tracks_.size(); ++ti)
         for (std::size_t di = 0; di < dets.size(); ++di) {
             const Detection &d = dets[di];
-            const double cost = tracks_[ti].filter.distance(d.row, d.col);
-            if (cost <= params_.gate)
-                pairs_.push_back(
-                    {tracks_[ti].hits < params_.confirm_hits, cost, ti, di});
+            const double error_magnitude =
+                tracks_[ti].filter.error_magnitude(d.row, d.col);
+            if (error_magnitude <= params_.gate)
+                pairs_.push_back({error_magnitude, ti, di});
         }
 
     // Confirmed tracks claim first: a newborn beside an established track would
@@ -45,7 +45,8 @@ void Tracker::associate(double dt, std::span<const Detection> dets) {
 void Tracker::spawn(std::span<const Detection> dets) {
     for (std::size_t di = 0; di < dets.size(); ++di)
         if (!det_taken_[di])
-            tracks_.push_back({AlphaBetaFilter{dets[di].row, dets[di].col}});
+            tracks_.push_back({AlphaBetaFilter{dets[di].row, dets[di].col},
+                               static_cast<TrackId>(di)});
 }
 
 void Tracker::cleanup() {
@@ -59,7 +60,7 @@ std::vector<TrackRecord> Tracker::report(FrameId frame) const {
         if (t.hits < params_.confirm_hits)
             continue;
         const StateEstimate s = t.filter.state();
-        out.push_back({frame, s.row, s.col, s.v_row, s.v_col});
+        out.push_back({frame, t.id, s.row, s.col, s.v_row, s.v_col});
     }
     return out;
 }
