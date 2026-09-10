@@ -1,7 +1,7 @@
-#include "frame/FrameReader.hpp"
 #include "core/ParseError.hpp"
 #include "core/Types.hpp"
 #include "frame/Frame.hpp"
+#include "frame/FrameReader.hpp"
 #include "frame/FrameWriter.hpp"
 
 #include <gtest/gtest.h>
@@ -111,14 +111,15 @@ TEST(FrameIo, ReportsShortReadOnATruncatedFrameOrHeader) {
           kPayloadBytes + sizeof(FrameHeader) - 4}) {
         const auto path = scratch("opir_frame_short.bin");
         write_frames(path, 2);
-        std::filesystem::resize_file(path,
-                                     std::filesystem::file_size(path) - missing);
+        std::filesystem::resize_file(path, std::filesystem::file_size(path) -
+                                               missing);
 
         FrameReader reader{path};
         ASSERT_TRUE(reader.next().has_value()) << "missing " << missing;
         const auto frame = reader.next();
         ASSERT_FALSE(frame.has_value()) << "missing " << missing;
-        EXPECT_EQ(frame.error(), ParseError::ShortRead) << "missing " << missing;
+        EXPECT_EQ(frame.error(), ParseError::ShortRead)
+            << "missing " << missing;
         std::filesystem::remove(path);
     }
 }

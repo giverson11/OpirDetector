@@ -36,9 +36,8 @@ namespace {
 ///
 void report_summary(const RunSummary &summary) {
     std::println("");
-    std::println("{} frames scored, {} misses, {} false alarms",
-                 summary.frames, summary.total_misses,
-                 summary.total_false_alarms);
+    std::println("{} frames scored, {} misses, {} false alarms", summary.frames,
+                 summary.total_misses, summary.total_false_alarms);
     std::println("{:>6}  {:>7}  {:>7}  {:>6}  {:>17}  {:>17}  {:>17}", "target",
                  "present", "tracked", "missed", "radial px", "d_row px",
                  "d_col px");
@@ -131,8 +130,7 @@ int run(std::vector<std::string_view> arguments) {
         for (const Match &m : score.matched) {
             std::println("    target {} <- track {}   d = {:+.3f}, {:+.3f}"
                          "   |d| = {:.3f}",
-                         m.target_id, m.track_id, m.d_row, m.d_col,
-                         m.distance);
+                         m.target_id, m.track_id, m.d_row, m.d_col, m.distance);
         }
         for (const TargetId missed : score.missed) {
             std::println("    target {} MISSED", missed);

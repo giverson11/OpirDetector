@@ -53,8 +53,8 @@ TEST(TruthTable, RoundTripsEveryFieldTruthWriterWrites) {
         record(0, 0, 24.0, 24.0, 2000.0), record(0, 1, 0.1, -3.5, 1e20),
         record(1, 0, 10.5, 20.25, 1500.0), record(1, 1, -1.5, 999.5, 0.0)};
 
-    const auto path = std::filesystem::temp_directory_path() /
-                      "opir_truth_roundtrip.csv";
+    const auto path =
+        std::filesystem::temp_directory_path() / "opir_truth_roundtrip.csv";
     {
         TruthWriter writer{path};
         writer.write_truth(written);
