@@ -89,10 +89,10 @@ int run() {
 
         const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
 
-        mask.assign(rows * cols, 0);
+        mask.resize(rows * cols);
         bg.assign(rows * cols, 0.0);
         sg.assign(rows * cols, 0.0);
-        labels.assign(rows * cols, 0);
+        labels.resize(rows * cols);
         stack.clear();
 
         cfar_threshold(data->px, CfarParams{.guard = 3, .ref = 8},

@@ -26,4 +26,11 @@ template <class T> using Plane = std::mdspan<T, std::dextents<std::size_t, 2>>;
 ///  A span to navigate a frames contents by row and col
 using FrameSpan = Plane<const Pixel>;
 
+struct Detection {
+    FrameId frame_id;
+    double row, col;  // sub-pixel centroid
+    double amplitude; // background-subtracted peak
+    double snr;
+};
+
 } // namespace opir

@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <span>
 #include <sys/types.h>
 #include <vector>
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/Types.hpp"
-#include "detect/Cluster.hpp"
 #include "filter/AlphaBeta.hpp"
 
 #include <cstddef>

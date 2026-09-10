@@ -20,8 +20,8 @@
 namespace opir {
 namespace {
 
-constexpr size_t kRows = 100;
-constexpr size_t kColumns = 100;
+constexpr size_t kRows = 1000;
+constexpr size_t kColumns = 1000;
 constexpr FrameId kLastFrameId = 100;
 
 constexpr uint64_t kSeed = 42;
@@ -48,8 +48,8 @@ int run() {
     for (int i = 0; i < 4; ++i) {
         simulator.add_target(Target{.r0 = 24.0 + 44.0 * (i / 2),
                                     .c0 = 24.0 + 44.0 * (i % 2),
-                                    .r_rate = 1.0,
-                                    .c_rate = 1.0,
+                                    .r_rate = 2.0 * i,
+                                    .c_rate = 2.0 + 1.3 * i,
                                     .amplitude = 2000.0,
                                     .sigma = 3.0});
     }

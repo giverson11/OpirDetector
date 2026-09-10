@@ -8,9 +8,6 @@ struct StateEstimate {
     double v_row, v_col;
 };
 
-/// The gains the filter settles at. They are not independent: stability needs
-/// 0 < beta < 4 - 2 * alpha, and beta = alpha^2 / (2 - alpha) is the
-/// Benedict-Bordner pair that balances lag against noise.
 struct AlphaBetaParams {
     double alpha = 0.6; // fraction of each residual applied to position
     double beta = 0.2;  // fraction applied to velocity, per second
@@ -19,10 +16,6 @@ struct AlphaBetaParams {
 /// Fixed-gain constant-velocity filter: predict along the current velocity,
 /// then pull toward each detection by a fraction of the residual.
 ///
-/// The first few updates use expanding-memory gains instead, which start at a
-/// two-point velocity initialisation and decay to the pair above. Without them
-/// a new track needs dozens of frames to learn a velocity it can read off its
-/// second detection.
 class AlphaBetaFilter {
     StateEstimate x_;
     AlphaBetaParams p_;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/Types.hpp"
-#include "detect/Cfar.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -16,13 +15,6 @@ namespace opir {
 struct ClusterParams {
     int min_cluster = 2;
     int max_cluster = 25;
-};
-
-struct Detection {
-    FrameId frame_id;
-    double row, col;  // sub-pixel centroid
-    double amplitude; // background-subtracted peak
-    double snr;
 };
 
 ///
