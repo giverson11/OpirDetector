@@ -95,9 +95,6 @@ TEST(FrameReaderNext, RoundTripsWhatTheWriterWrote) {
     }
 }
 
-/// A file that stops on a frame boundary has ended, not failed, and keeps
-/// saying so rather than reporting something new on a second call. An empty
-/// file is the zero-frame case of the same thing.
 TEST(FrameReaderNext, ReportsEndOfStreamOnAnEmptyFileAndAfterTheLastFrame) {
     {
         test::TempFile empty{".bin"};
@@ -122,9 +119,6 @@ TEST(FrameReaderNext, ReportsEndOfStreamOnAnEmptyFileAndAfterTheLastFrame) {
     }
 }
 
-/// The distinction the whole read path exists to make: a file cut off part way
-/// through, whether inside the pixels or inside the header, is corrupt and
-/// must not look like a clean end.
 TEST(FrameReaderNext, ReportsShortReadOnATruncatedFrameOrHeader) {
     for (const std::uintmax_t missing :
          {std::uintmax_t{1}, std::uintmax_t{5}, kPayloadBytes,
@@ -144,10 +138,6 @@ TEST(FrameReaderNext, ReportsShortReadOnATruncatedFrameOrHeader) {
     }
 }
 
-/// Everything the header exists to catch, one mutation at a time. The last
-/// case needs a good frame ahead of it: every frame in a file comes off one
-/// detector, so a shape that changes part way through means two captures were
-/// concatenated.
 TEST(FrameReaderNext, RejectsAHeaderItDoesNotRecognise) {
     struct Case {
         const char *name;

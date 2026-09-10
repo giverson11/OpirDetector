@@ -49,11 +49,12 @@ FrameScore score_frame(FrameId frame, std::span<const TruthRecord> truth,
         }
         truth_taken[p.truth] = 1;
         track_taken[p.track] = 1;
-        score.matched.push_back({.target_id = truth[p.truth].target_id,
-                                 .track_id = tracks[p.track].track_id,
-                                 .d_row = tracks[p.track].row - truth[p.truth].row,
-                                 .d_col = tracks[p.track].col - truth[p.truth].col,
-                                 .distance = p.cost});
+        score.matched.push_back(
+            {.target_id = truth[p.truth].target_id,
+             .track_id = tracks[p.track].track_id,
+             .d_row = tracks[p.track].row - truth[p.truth].row,
+             .d_col = tracks[p.track].col - truth[p.truth].col,
+             .distance = p.cost});
     }
 
     for (std::size_t ti = 0; ti < truth.size(); ++ti) {
@@ -69,7 +70,7 @@ FrameScore score_frame(FrameId frame, std::span<const TruthRecord> truth,
     return score;
 }
 
-void Welford::add(double x) {
+void ScoreForm::add(double x) {
     ++n_;
     const double delta = x - mean_;
     mean_ += delta / static_cast<double>(n_);
@@ -78,14 +79,14 @@ void Welford::add(double x) {
     m2_ += delta * (x - mean_);
 }
 
-double Welford::variance() const {
+double ScoreForm::variance() const {
     if (n_ < 2) {
         return std::numeric_limits<double>::quiet_NaN();
     }
     return m2_ / static_cast<double>(n_ - 1);
 }
 
-double Welford::stddev() const { return std::sqrt(variance()); }
+double ScoreForm::stddev() const { return std::sqrt(variance()); }
 
 FrameScore Scorer::add(FrameId frame, std::span<const TruthRecord> truth,
                        std::span<const TrackRecord> tracks) {

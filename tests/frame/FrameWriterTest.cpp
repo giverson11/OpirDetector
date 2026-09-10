@@ -26,8 +26,6 @@ constexpr std::size_t kHeaderBytes = sizeof(FrameHeader);
 constexpr std::size_t kFrameBytes =
     kHeaderBytes + kPixelsPerFrame * sizeof(Pixel);
 
-/// The header of frame `index`, or a default-constructed one if the file is too
-/// short to hold it (which the caller's size assertion will already have said).
 FrameHeader header_of(const test::TempFile &file, std::size_t index) {
     const std::vector<std::byte> raw = file.bytes();
     FrameHeader header{};
@@ -49,9 +47,6 @@ std::vector<Pixel> payload_of(const test::TempFile &file, std::size_t index) {
     return out;
 }
 
-/// The file is opened and the shape checked up front, so a bad destination or
-/// a shape that cannot go into a uint32 header is reported before any
-/// simulation time is spent.
 TEST(FrameWriterConstruction, ThrowsForAnUnopenablePathOrAnOutOfRangeShape) {
     EXPECT_THROW(FrameWriter(test::unopenable_path(), kRows, kColumns), Error);
 
@@ -83,10 +78,6 @@ TEST(FrameWriterConstruction, CreatesTheFileEmptyAndTruncatesAnExistingOne) {
         << "a second run must not append to the first run's output";
 }
 
-/// A frame is a header stamped with magic, version, shape, id and timestamp,
-/// followed by rows * columns pixels in row-major order. Frames sit back to
-/// back with nothing between them, so a reader finds frame N by stepping over
-/// N whole frames and checking the magic it lands on.
 TEST(FrameWriterWriteFrame, WritesFramesBackToBackEachAHeaderThenPixels) {
     constexpr std::size_t kFrames = 3;
     test::TempFile file{".bin"};
@@ -119,10 +110,6 @@ TEST(FrameWriterWriteFrame, WritesFramesBackToBackEachAHeaderThenPixels) {
     }
 }
 
-/// A rejected frame must leave nothing behind, not even its header, or the
-/// stream would desync; and the writer stays usable afterwards. An oversized
-/// buffer is accepted and trimmed from the front, which is what lets a caller
-/// reuse one large scratch buffer across differently sized writers.
 TEST(FrameWriterWriteFrame, RejectsATooSmallBufferAndTrimsAnOversizedOne) {
     test::TempFile file{".bin"};
     {

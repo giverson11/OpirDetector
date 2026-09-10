@@ -15,10 +15,6 @@
 
 namespace opir::test {
 
-/// A unique path under the system temp directory that deletes itself again when
-/// the object goes out of scope. The file is deliberately *not* created here:
-/// creating it is the writer's job, so a test can tell "never opened" apart
-/// from "opened and left empty".
 class TempFile {
     std::filesystem::path path_;
 

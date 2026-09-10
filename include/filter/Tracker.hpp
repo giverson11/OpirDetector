@@ -41,6 +41,7 @@ class Tracker {
     /// The member order is the sort order: confirmed tracks first, then
     /// cheapest first, with the indices breaking exact ties.
     struct Pair {
+        bool tentative;
         double error;
         std::size_t track, det;
         friend auto operator<=>(const Pair &, const Pair &) = default;

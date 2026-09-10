@@ -12,10 +12,6 @@
 
 namespace opir {
 
-/// How close a track has to fall before it counts as covering a truth record.
-/// Deliberately separate from TrackParams::gate: that one decides what a track
-/// is allowed to believe, this one decides what a reader is willing to call
-/// correct, and tightening the second must not change the first.
 struct ScoreParams {
     double match_radius = 4.0;
 };
@@ -61,11 +57,8 @@ FrameScore score_frame(FrameId frame, std::span<const TruthRecord> truth,
 ///
 /// Running count, mean and variance in one pass.
 ///
-/// Welford's form rather than accumulating squares: the errors here are small
-/// numbers whose squares are smaller still, and sum_sq/n - mean^2 loses its
-/// significant digits exactly there.
 ///
-class Welford {
+class ScoreForm {
     std::size_t n_ = 0;
     double mean_ = 0.0;
     double m2_ = 0.0;
@@ -76,7 +69,6 @@ class Welford {
     std::size_t count() const { return n_; }
     double mean() const { return mean_; }
 
-    /// Sample variance, or NaN before there are two samples to spread.
     double variance() const;
     double stddev() const;
 };
@@ -94,7 +86,7 @@ struct TargetStats {
     /// delay shows up rather than hiding inside the miss count.
     std::optional<FrameId> first_tracked;
 
-    Welford radial, d_row, d_col;
+    ScoreForm radial, d_row, d_col;
 };
 
 struct RunSummary {

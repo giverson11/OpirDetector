@@ -22,7 +22,8 @@ void Tracker::associate(double dt, std::span<const Detection> dets) {
             const double error_magnitude =
                 tracks_[ti].filter.error_magnitude(d.row, d.col);
             if (error_magnitude <= params_.gate)
-                pairs_.push_back({error_magnitude, ti, di});
+                pairs_.push_back({tracks_[ti].hits < params_.confirm_hits,
+                                  error_magnitude, ti, di});
         }
 
     // Confirmed tracks claim first: a newborn beside an established track would

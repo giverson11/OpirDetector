@@ -53,3 +53,12 @@ target_include_directories(scitec_filter_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DI
 scitect_set_warnings(scitec_filter_tests)
 
 gtest_discover_tests(scitec_filter_tests)
+
+add_executable(scitec_eval_tests
+    eval/ScoreTest.cpp
+)
+target_link_libraries(scitec_eval_tests PRIVATE scitec_eval GTest::gtest_main)
+target_include_directories(scitec_eval_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+scitect_set_warnings(scitec_eval_tests)
+
+gtest_discover_tests(scitec_eval_tests)

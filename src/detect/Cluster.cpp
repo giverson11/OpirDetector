@@ -11,6 +11,13 @@ uint32_t label_clusters(Plane<const std::uint8_t> mask,
     const std::size_t rows = mask.extent(0), cols = mask.extent(1);
     std::uint32_t label = 0;
 
+    // Both buffers belong to the caller and come back from the last frame, so
+    // this owns clearing them. Leaving labels as they were would make every
+    // set pixel look already claimed and find nothing at all.
+    std::fill(labels.data_handle(), labels.data_handle() + labels.size(),
+              std::uint32_t{0});
+    stack.clear();
+
     for (std::size_t r = 0; r < rows; ++r) {
         for (std::size_t c = 0; c < cols; ++c) {
             if (!mask[r, c] || labels[r, c] != 0)
