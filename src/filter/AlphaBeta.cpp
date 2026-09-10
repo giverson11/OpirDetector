@@ -1,8 +1,6 @@
 #include "filter/AlphaBeta.hpp"
-#include "core/Error.hpp"
 
 #include <cmath>
-#include <format>
 
 namespace opir {
 
@@ -19,11 +17,6 @@ double AlphaBetaFilter::error_magnitude(double row, double col) const {
 }
 
 void AlphaBetaFilter::update(double dt, double row, double col) {
-    // A new track knows where it is and nothing about how fast. The expanding
-    // gains open by reading the velocity off the second detection and decay
-    // from there; once they have fallen to the caller's pair the schedule has
-    // nothing left to offer and the steady gains take over for good.
-
     const double r_res = row - x_.row;
     const double c_res = col - x_.col;
     x_.row += p_.alpha * r_res;

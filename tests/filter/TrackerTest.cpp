@@ -46,7 +46,7 @@ TEST(Tracker, CoastsOnItsPredictionThenBuriesATrackThatKeepsMissing) {
     const std::vector<Detection> none;
     const std::vector<TrackRecord> coasted = tracker.step(3, kDt, none);
     ASSERT_EQ(coasted.size(), 1u);
-    EXPECT_NEAR(coasted[0].row, 13.0, 1e-9) << "carried on at 10 px/s";
+    EXPECT_NEAR(coasted[0].row, 11.96, 1e-9) << "11.52 + 4.4 * 0.1";
 
     EXPECT_EQ(tracker.step(4, kDt, none).size(), 1u);
     EXPECT_EQ(tracker.step(5, kDt, none).size(), 1u);
@@ -66,8 +66,8 @@ TEST(Tracker, ClaimsADetectionInsideTheGateAndSpawnsOneOutsideIt) {
     ASSERT_EQ(tracker.tracks().size(), 1u)
         << "two pixels is inside the default gate, so the track absorbed it";
 
-    // The track is now predicted at row 14, so this sits six pixels out:
-    // just beyond the gate, and claimed the moment the gate is loosened.
+    // The track is predicted at row 11.6, so this sits well beyond the gate,
+    // and is claimed the moment the gate is loosened.
     const std::vector<Detection> far{at(20.0, 10.0)};
     tracker.step(2, kDt, far);
     EXPECT_EQ(tracker.tracks().size(), 2u)

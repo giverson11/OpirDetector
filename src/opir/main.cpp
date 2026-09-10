@@ -77,22 +77,21 @@ int run() {
     // whole stream: a track needs TrackParams::confirm_hits frames of
     // evidence before it is reported.
     Tracker track{TrackParams{}};
-    std::vector<std::uint8_t> mask;
-    std::vector<double> bg, sg;
-    std::vector<std::uint32_t> labels;
-    std::vector<std::size_t> stack;
 
     auto data = frameData.next();
     double prev_t = data ? data->t : 0;
+    const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
+
+    std::vector<std::uint8_t> mask(rows * cols); // mask is filled to 0 in cfar
+    std::vector<double> bg(rows * cols), sg(rows * cols);
+    std::vector<std::uint32_t> labels(
+        rows * cols); // labels is filled to 0 in label_clusters
+    std::vector<std::size_t> stack;
 
     for (; data; data = frameData.next()) {
 
-        const std::size_t rows = data->px.extent(0), cols = data->px.extent(1);
-
-        mask.resize(rows * cols);
         bg.assign(rows * cols, 0.0);
         sg.assign(rows * cols, 0.0);
-        labels.resize(rows * cols);
         stack.clear();
 
         cfar_threshold(data->px, CfarParams{.guard = 3, .ref = 8},
@@ -108,9 +107,6 @@ int run() {
             data->px, Plane<std::uint32_t>{labels.data(), rows, cols},
             labelCount, Plane<const double>{bg.data(), rows, cols},
             Plane<const double>{sg.data(), rows, cols},
-            // A sigma = 3 PSF at this amplitude clears the threshold out to
-            // ~6.6 px, so a single point target lands ~140 px of mask. The
-            // default cap of 25 is sized for a much tighter PSF.
             ClusterParams{.min_cluster = 2, .max_cluster = 200}, data->id);
 
         // step() wants the gap since the previous frame, not the timestamp.

@@ -15,14 +15,11 @@ struct AlphaBetaParams {
 
 /// Fixed-gain constant-velocity filter: predict along the current velocity,
 /// then pull toward each detection by a fraction of the residual.
-///
 class AlphaBetaFilter {
     StateEstimate x_;
     AlphaBetaParams p_;
-    int updates_ = 1; // the constructor's position is the first measurement
 
   public:
-    /// \throws Error if the gains fall outside the stable region
     AlphaBetaFilter(double row, double col, AlphaBetaParams p = {});
 
     void predict(double dt);
