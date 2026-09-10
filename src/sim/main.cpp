@@ -20,8 +20,8 @@
 namespace opir {
 namespace {
 
-constexpr size_t kRows = 1000;
-constexpr size_t kColumns = 1000;
+constexpr size_t kRows = 100;
+constexpr size_t kColumns = 100;
 constexpr FrameId kLastFrameId = 100;
 
 constexpr uint64_t kSeed = 42;
