@@ -16,6 +16,7 @@ include(GoogleTest)
 add_executable(scitec_sim_tests
     sim/SceneSimulatorTest.cpp
     sim/TruthWriterTest.cpp
+    sim/TruthTableTest.cpp
 )
 target_link_libraries(scitec_sim_tests PRIVATE scitec_sim GTest::gtest_main)
 target_include_directories(scitec_sim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

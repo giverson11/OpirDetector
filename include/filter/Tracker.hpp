@@ -49,6 +49,11 @@ class Tracker {
     TrackParams params_;
     std::vector<Track> tracks_;
 
+    // Ids have to be unique over the whole run, not just within a frame:
+    // anything scoring a track against truth pools its records by this id, and
+    // a number that restarts would merge two unrelated tracks into one.
+    TrackId next_id_ = 0;
+
     // Scratch reused across frames, like the cluster stack.
     std::vector<Pair> pairs_;
     std::vector<char> det_taken_;

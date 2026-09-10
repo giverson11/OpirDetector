@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
-#include <fstream>
 #include <print>
 
 #ifndef SCENE_DATA_FILE
@@ -57,7 +56,7 @@ int run() {
     std::vector<Pixel> buffer(kRows * kColumns);
 
     for (FrameId frame = 0; frame < kLastFrameId; frame++) {
-        simulator.render(frame, buffer);
+        simulator.render(frame, Plane<Pixel>{buffer.data(), kRows, kColumns});
         sceneWriter.write_frame(frame, frame * params.dt, buffer);
 
         truthWriter.write_truth(simulator.getTargetRecords(frame));

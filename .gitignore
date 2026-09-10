@@ -188,3 +188,5 @@ CMakeUserPresets.json
 
 /build
 /build-clang
+*.bin
+*.csv

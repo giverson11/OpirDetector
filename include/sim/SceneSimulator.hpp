@@ -51,7 +51,7 @@ struct TruthRecord {
 class SceneSimulator {
 
     const size_t rows_;
-    const size_t columns_;
+    const size_t cols_;
     const SceneParams params_;
 
     std::mt19937_64 rng_;
@@ -69,7 +69,7 @@ class SceneSimulator {
     /// \param params
     /// \param seed
     ///
-    SceneSimulator(std::size_t rows, std::size_t columns, SceneParams params,
+    SceneSimulator(std::size_t rows, std::size_t cols, SceneParams params,
                    uint64_t seed);
 
     ///
@@ -87,7 +87,7 @@ class SceneSimulator {
     /// \param t
     /// \param out
     ///
-    void render(FrameId frame, std::span<Pixel> out);
+    void render(FrameId frame, Plane<Pixel> out);
 
     ///
     ///

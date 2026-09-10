@@ -2,9 +2,10 @@
 #include "core/Types.hpp"
 #include "detect/Cfar.hpp"
 #include "detect/Cluster.hpp"
+#include "eval/Score.hpp"
 #include "filter/Tracker.hpp"
 #include "frame/FrameReader.hpp"
-#include "sim/TruthWriter.hpp"
+#include "sim/TruthTable.hpp"
 #include <alloca.h>
 #include <cstddef>
 #include <cstdio>
@@ -26,13 +27,56 @@
 namespace opir {
 namespace {
 
+///
+/// The run in one table: how each target was followed, and what was lost.
+///
+/// Radial error is a magnitude, so its mean sits above zero even for a
+/// tracker with no bias at all; the signed row and column means are where a
+/// filter's lag actually shows.
+///
+void report_summary(const RunSummary &summary) {
+    std::println("");
+    std::println("{} frames scored, {} misses, {} false alarms",
+                 summary.frames, summary.total_misses,
+                 summary.total_false_alarms);
+    std::println("{:>6}  {:>7}  {:>7}  {:>6}  {:>17}  {:>17}  {:>17}", "target",
+                 "present", "tracked", "missed", "radial px", "d_row px",
+                 "d_col px");
+
+    for (const TargetStats &t : summary.targets) {
+        std::println("{:>6}  {:>7}  {:>7}  {:>6}  {:>8.3f} +/-{:>6.3f}"
+                     "  {:>+8.3f} +/-{:>6.3f}  {:>+8.3f} +/-{:>6.3f}",
+                     t.target_id, t.frames_present, t.frames_tracked, t.misses,
+                     t.radial.mean(), t.radial.stddev(), t.d_row.mean(),
+                     t.d_row.stddev(), t.d_col.mean(), t.d_col.stddev());
+    }
+
+    // The first frames of a run are structurally missed: a track is not
+    // reported until it has TrackParams::confirm_hits of evidence behind it.
+    for (const TargetStats &t : summary.targets) {
+        if (t.first_tracked) {
+            std::println("target {} acquired at frame {}", t.target_id,
+                         *t.first_tracked);
+        } else {
+            std::println("target {} was never tracked", t.target_id);
+        }
+    }
+}
+
 int run(std::vector<std::string_view> arguments) {
 
     FrameReader frameData{SCENE_DATA_FILE};
+    auto truthData = TruthTable::load(TRUTH_CSV_FILE);
+
+    if (!truthData) {
+        std::println(stderr, "truth: {}", truthData.error());
+        return 2;
+    }
+    Scorer scorer{ScoreParams{}};
 
     // The tracker, and the scratch these stages write into, live across the
-    // whole stream: a track needs TrackParams::confirm_hits frames of evidence
-    // before it is reported.
+    // whole stream: a track needs TrackParams::confirm_hits frames of
+    // evidence before it is reported.
     Tracker track{TrackParams{}};
     std::vector<std::uint8_t> mask;
     std::vector<double> bg, sg;
@@ -77,11 +121,28 @@ int run(std::vector<std::string_view> arguments) {
         prev_t = data->t;
         auto report = track.step(data->id, dt, dets);
 
-        for (auto &r : report) {
-            std::println("(Frame: {}, Item: {}) => {}, {}, {}, {} ", r.frame_id,
-                         r.track_id, r.row, r.col, r.v_row, r.v_col);
+        const FrameScore score =
+            scorer.add(data->id, truthData->view_at(data->id), report);
+
+        std::println("frame {:>4}  matched {}/{}  missed {}  false {}",
+                     score.frame_id, score.matched.size(),
+                     score.matched.size() + score.missed.size(),
+                     score.missed.size(), score.false_alarms.size());
+        for (const Match &m : score.matched) {
+            std::println("    target {} <- track {}   d = {:+.3f}, {:+.3f}"
+                         "   |d| = {:.3f}",
+                         m.target_id, m.track_id, m.d_row, m.d_col,
+                         m.distance);
+        }
+        for (const TargetId missed : score.missed) {
+            std::println("    target {} MISSED", missed);
+        }
+        for (const TrackId spurious : score.false_alarms) {
+            std::println("    track {} matches no truth", spurious);
         }
     }
+
+    report_summary(scorer.summary());
     if (data.error() == ParseError::EndOfStream)
         return 0;
     std::println(stderr, "{}", data.error());

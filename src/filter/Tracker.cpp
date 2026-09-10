@@ -45,8 +45,8 @@ void Tracker::associate(double dt, std::span<const Detection> dets) {
 void Tracker::spawn(std::span<const Detection> dets) {
     for (std::size_t di = 0; di < dets.size(); ++di)
         if (!det_taken_[di])
-            tracks_.push_back({AlphaBetaFilter{dets[di].row, dets[di].col},
-                               static_cast<TrackId>(di)});
+            tracks_.push_back(
+                {AlphaBetaFilter{dets[di].row, dets[di].col}, next_id_++});
 }
 
 void Tracker::cleanup() {

@@ -22,11 +22,10 @@ constexpr Pixel quantize(double v) {
 }
 } // namespace
 
-SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
+SceneSimulator::SceneSimulator(std::size_t rows, std::size_t cols,
                                SceneParams params, uint64_t seed)
-    : rows_{rows}, columns_{columns}, params_{params}, rng_{seed},
-      fixed_pattern_(rows * columns),
-      read_noise_{params.mean, params.read_sigma} {
+    : rows_{rows}, cols_{cols}, params_{params}, rng_{seed},
+      fixed_pattern_(rows * cols), read_noise_{params.mean, params.read_sigma} {
 
     std::normal_distribution<double> fpn{params.mean, params.fpn_sigma};
     std::ranges::generate(fixed_pattern_, [&] { return fpn(rng_); });
@@ -34,27 +33,29 @@ SceneSimulator::SceneSimulator(std::size_t rows, std::size_t columns,
 
 void SceneSimulator::add_target(Target target) { targets_.push_back(target); }
 
-void SceneSimulator::render(FrameId frame, std::span<Pixel> out) {
-    if (out.size() < rows_ * columns_)
+void SceneSimulator::render(FrameId frame, Plane<Pixel> out) {
+    if (out.size() < rows_ * cols_)
         throw Error(std::format(
             "SceneSimulator needs a buffer of size of at least {} * {}", rows_,
-            columns_));
+            cols_));
     double t = frame * params_.dt;
+    Plane<double> fp = Plane<double>{fixed_pattern_.data(), rows_, cols_};
     for (std::size_t r = 0; r < rows_; ++r) {
-        for (std::size_t c = 0; c < columns_; ++c) {
-            double v = params_.dc_level +
-                       params_.row_gradient * static_cast<double>(r) +
-                       fixed_pattern_[r * columns_ + c] + read_noise_(rng_);
+        for (std::size_t c = 0; c < cols_; ++c) {
+            double brightness = params_.dc_level +
+                                params_.row_gradient * static_cast<double>(r) +
+                                fp[r, c] + read_noise_(rng_);
 
             for (const auto &target : targets_) {
+                // How far is each pixel away from a target
                 double dr = static_cast<double>(r) - target.row(t),
                        dc = static_cast<double>(c) - target.col(t);
                 double s2 = target.sigma * target.sigma;
-                v += target.amplitude *
-                     std::exp(-(dr * dr + dc * dc) / (2 * s2));
+                brightness += target.amplitude *
+                              std::exp(-(dr * dr + dc * dc) / (2 * s2));
             }
 
-            out[r * columns_ + c] = quantize(v);
+            out[r, c] = quantize(brightness);
         }
     }
 }
@@ -86,7 +87,7 @@ std::vector<TruthRecord> SceneSimulator::getTargetRecords(FrameId frame) {
 
 bool SceneSimulator::isTargetInFrame(const double row, const double col) {
     return (row >= 0 && row < static_cast<double>(rows_)) &&
-           (col >= 0 && col < static_cast<double>(columns_));
+           (col >= 0 && col < static_cast<double>(cols_));
 }
 
 } // namespace opir

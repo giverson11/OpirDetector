@@ -65,13 +65,20 @@ scitect_set_warnings(scitec_frame)
 add_library(scitec_sim
     src/sim/SceneSimulator.cpp
     src/sim/TruthWriter.cpp
+    src/sim/TruthTable.cpp
 )
 target_link_libraries(scitec_sim PUBLIC scitec_core)
 scitect_set_warnings(scitec_sim)
 
 
+add_library(scitec_eval
+    src/eval/Score.cpp
+)
+target_link_libraries(scitec_eval PUBLIC scitec_sim scitec_filter)
+scitect_set_warnings(scitec_eval)
+
 add_executable(scitec_opir_detection src/opir/main.cpp)
-target_link_libraries(scitec_opir_detection PRIVATE scitec_sim scitec_frame scitec_filter scitec_detect)
+target_link_libraries(scitec_opir_detection PRIVATE scitec_eval scitec_sim scitec_frame scitec_filter scitec_detect)
 scitect_set_warnings(scitec_opir_detection)
 
 add_executable(scene_gen src/sim/main.cpp)

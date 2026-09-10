@@ -59,7 +59,7 @@ Image render(SceneSimulator &simulator, std::size_t rows, std::size_t columns,
     Image image{.rows = rows,
                 .columns = columns,
                 .pixels = std::vector<Pixel>(rows * columns)};
-    simulator.render(frame, image.pixels);
+    simulator.render(frame, Plane<Pixel>{image.pixels.data(), rows, columns});
     return image;
 }
 
@@ -254,11 +254,15 @@ TEST(SceneSimulatorSeed, ReproducesAFrameExactlyAndDiffersAcrossSeeds) {
 
 TEST(SceneSimulatorRender, RejectsABufferSmallerThanTheFrame) {
     SceneSimulator simulator(8, 8, quiet_params(), kSeed);
-    std::vector<Pixel> too_small(8 * 8 - 1);
-    EXPECT_THROW(simulator.render(0, too_small), Error);
+    // The shape now travels with the buffer, so "too small" is a view that
+    // spans fewer pixels than the frame, not a short allocation behind a
+    // full-size view -- that would be a read past the end, not an error.
+    std::vector<Pixel> too_small(8 * 8);
+    EXPECT_THROW(simulator.render(0, Plane<Pixel>{too_small.data(), 8, 7}),
+                 Error);
 
     std::vector<Pixel> exact(8 * 8);
-    EXPECT_NO_THROW(simulator.render(0, exact));
+    EXPECT_NO_THROW(simulator.render(0, Plane<Pixel>{exact.data(), 8, 8}));
 }
 
 // ---------------------------------------------------------------------------

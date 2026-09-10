@@ -9,7 +9,8 @@ enum class ParseError {
     ShortRead,   // file ended mid-header or mid-payload — truncated
     BadMagic,    // magic didn't match — wrong format or desynced
     UnsupportedVersion,
-    BadDimensions, // rows/cols zero or implausibly large
+    BadDimensions,   // rows/cols zero or implausibly large
+    MalformedRecord, // a text record is not the fields it should be
 
 };
 
@@ -25,6 +26,8 @@ constexpr std::string_view to_string(ParseError e) {
         return "Invalid version";
     case ParseError::BadDimensions:
         return "Dimension of frame are invalid";
+    case ParseError::MalformedRecord:
+        return "record is not the fields it should be";
         // ...
     }
     return "unknown";
