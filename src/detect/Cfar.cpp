@@ -46,10 +46,6 @@ void cfar_threshold(FrameSpan px, const CfarParams &p, Plane<std::uint8_t> mask,
     const size_t cols = px.extent(1);
     const size_t ref = static_cast<size_t>(p.ref);
 
-    // An mdspan is not a range, but this layout is contiguous, so a flat view
-    // over the same storage is what the range algorithms want.
-    std::fill(mask.data_handle(), mask.data_handle() + mask.size(), uint8_t{0});
-
     // Border pixels are skipped: their reference window would fall outside the
     // frame.
     for (size_t r = ref; r + ref < rows; ++r) {

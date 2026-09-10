@@ -62,7 +62,7 @@ void report_summary(const RunSummary &summary) {
     }
 }
 
-int run(std::vector<std::string_view> arguments) {
+int run() {
 
     FrameReader frameData{SCENE_DATA_FILE};
     auto truthData = TruthTable::load(TRUTH_CSV_FILE);
@@ -95,9 +95,7 @@ int run(std::vector<std::string_view> arguments) {
         labels.assign(rows * cols, 0);
         stack.clear();
 
-        // The guard band has to clear the PSF, or a target's own skirt lands
-        // in its reference ring and inflates the sigma it is measured against.
-        cfar_threshold(data->px, CfarParams{.guard = 9, .ref = 14},
+        cfar_threshold(data->px, CfarParams{.guard = 3, .ref = 8},
                        Plane<std::uint8_t>{mask.data(), rows, cols},
                        Plane<double>{bg.data(), rows, cols},
                        Plane<double>{sg.data(), rows, cols});
@@ -143,15 +141,14 @@ int run(std::vector<std::string_view> arguments) {
     report_summary(scorer.summary());
     if (data.error() == ParseError::EndOfStream)
         return 0;
-    std::println(stderr, "{}", data.error());
+    std::println(stderr, "Scene: {}", data.error());
     return 2;
 }
 } // namespace
 } // namespace opir
-int main(int argc, char **argv) {
-    const std::vector<std::string_view> arguments(argv + 1, argv + argc);
+int main() {
     try {
-        return opir::run(arguments);
+        return opir::run();
     } catch (const std::exception &error) {
         return 1;
     }
