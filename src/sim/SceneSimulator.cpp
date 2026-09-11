@@ -51,6 +51,7 @@ void SceneSimulator::render(FrameId frame, Plane<Pixel> out) {
                 double dr = static_cast<double>(r) - target.row(t),
                        dc = static_cast<double>(c) - target.col(t);
                 double s2 = target.sigma * target.sigma;
+                // Two dimensional gaussian Isotropic method
                 brightness += target.amplitude *
                               std::exp(-(dr * dr + dc * dc) / (2 * s2));
             }

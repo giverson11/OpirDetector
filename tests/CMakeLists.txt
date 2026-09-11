@@ -13,6 +13,9 @@ endif()
 
 include(GoogleTest)
 
+# ---------------------------------------------------------------------------
+# Sim
+# ---------------------------------------------------------------------------
 add_executable(scitec_sim_tests
     sim/SceneSimulatorTest.cpp
     sim/TruthTableTest.cpp
@@ -23,6 +26,9 @@ scitect_set_warnings(scitec_sim_tests)
 
 gtest_discover_tests(scitec_sim_tests)
 
+# ---------------------------------------------------------------------------
+# Frame
+# ---------------------------------------------------------------------------
 add_executable(scitec_frame_tests
     frame/FrameIoTest.cpp
 )
@@ -32,6 +38,9 @@ scitect_set_warnings(scitec_frame_tests)
 
 gtest_discover_tests(scitec_frame_tests)
 
+# ---------------------------------------------------------------------------
+# Detect
+# ---------------------------------------------------------------------------
 add_executable(scitec_detect_tests
     detect/CfarTest.cpp
     detect/ClusterTest.cpp
@@ -42,6 +51,9 @@ scitect_set_warnings(scitec_detect_tests)
 
 gtest_discover_tests(scitec_detect_tests)
 
+# ---------------------------------------------------------------------------
+# Filter
+# ---------------------------------------------------------------------------
 add_executable(scitec_filter_tests
     filter/AlphaBetaTest.cpp
     filter/TrackerTest.cpp
@@ -52,6 +64,9 @@ scitect_set_warnings(scitec_filter_tests)
 
 gtest_discover_tests(scitec_filter_tests)
 
+# ---------------------------------------------------------------------------
+# Eval
+# ---------------------------------------------------------------------------
 add_executable(scitec_eval_tests
     eval/ScoreTest.cpp
 )
