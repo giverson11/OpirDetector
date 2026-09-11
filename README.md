@@ -47,6 +47,7 @@ noise is one sample per pixel drawn at construction; read noise is redrawn
 every frame.
 
 
+
 The target term is a [2D isotropic Gaussian](https://en.wikipedia.org/wiki/Gaussian_function): two 1D normal
 distributions on independent axes sharing one sigma, multiplied together.
 
