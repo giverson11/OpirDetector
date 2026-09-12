@@ -26,9 +26,9 @@ struct ClusterParams {
 /// \param stack caller-owned scratch space, reused across calls
 /// \return how many components were found
 ///
-std::uint32_t label_clusters(Plane<const std::uint8_t> mask,
-                             Plane<std::uint32_t> labels,
-                             std::vector<std::size_t> &stack);
+[[nodiscard]] std::uint32_t label_clusters(Plane<const std::uint8_t> mask,
+                                           Plane<std::uint32_t> labels,
+                                           std::vector<std::size_t> &stack);
 
 ///
 /// Accumulates the values from each cluster and determines the intensity
@@ -44,7 +44,7 @@ std::uint32_t label_clusters(Plane<const std::uint8_t> mask,
 /// \param frame_id
 /// \return
 ///
-std::vector<Detection>
+[[nodiscard]] std::vector<Detection>
 centroid_clusters(FrameSpan px, Plane<const std::uint32_t> labels,
                   std::size_t n_labels, Plane<const double> bg,
                   Plane<const double> sg, const ClusterParams &p,

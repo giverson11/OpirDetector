@@ -13,7 +13,8 @@ class FrameWriter {
     size_t rows_ = 0, cols_ = 0;
 
   public:
-    FrameWriter(std::filesystem::path path, size_t rows, size_t cols);
+    [[nodiscard]] FrameWriter(std::filesystem::path path, size_t rows,
+                              size_t cols);
 
     ///
     /// Writes one frame: a FrameHeader followed by rows * cols pixels.

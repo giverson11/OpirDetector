@@ -1,3 +1,4 @@
+#include "core/Error.hpp"
 #include "core/ParseError.hpp"
 #include "core/Types.hpp"
 #include "frame/Frame.hpp"
@@ -27,6 +28,13 @@ std::filesystem::path scratch(std::string_view name) {
     const auto path = std::filesystem::temp_directory_path() / name;
     std::filesystem::remove(path);
     return path;
+}
+
+/// A path whose parent directory does not exist, so every attempt to open it
+/// must fail. This is what "a bad path" means here.
+std::filesystem::path unopenable_path() {
+    return std::filesystem::temp_directory_path() / "opir_no_such_dir_9d3f1a" /
+           "out.bin";
 }
 
 /// first, first + 1, ... so every pixel is distinguishable from every other,
@@ -122,6 +130,42 @@ TEST(FrameIo, ReportsShortReadOnATruncatedFrameOrHeader) {
             << "missing " << missing;
         std::filesystem::remove(path);
     }
+}
+
+/// Both ends open their file eagerly, so a destination that cannot be written
+/// or a source that cannot be read is reported before any run time is spent.
+/// The shape goes into every header as a uint32, so it is checked once here
+/// rather than being allowed to overflow or describe an empty detector.
+TEST(FrameIo, RejectsAnUnopenablePathAndAnOutOfRangeShape) {
+    EXPECT_THROW((void)(FrameWriter{unopenable_path(), kRows, kColumns}),
+                 Error);
+    EXPECT_THROW((void)(FrameReader{unopenable_path()}), Error);
+
+    const auto path = scratch("opir_frame_shape.bin");
+    EXPECT_THROW((void)(FrameWriter{path, 0, kColumns}), Error);
+    EXPECT_THROW((void)(FrameWriter{path, kRows, 0}), Error);
+    EXPECT_THROW((void)(FrameWriter{path, kMaxFrameDim + 1, kColumns}), Error);
+    EXPECT_NO_THROW((void)(FrameWriter{path, kMaxFrameDim, kMaxFrameDim}));
+    std::filesystem::remove(path);
+}
+
+/// A rejected frame must leave nothing behind, not even its header, or the
+/// stream would desync; and the writer stays usable so a caller can log and
+/// carry on rather than tear the whole run down.
+TEST(FrameIo, RejectsATooSmallBufferWithoutWritingAnything) {
+    const auto path = scratch("opir_frame_buffer.bin");
+    {
+        FrameWriter writer{path, kRows, kColumns};
+        EXPECT_THROW(writer.write_frame(0, 0.0, {}), Error);
+        EXPECT_THROW(writer.write_frame(0, 0.0, ramp(kPixelsPerFrame - 1)),
+                     Error);
+        EXPECT_EQ(std::filesystem::file_size(path), 0u);
+
+        EXPECT_NO_THROW(writer.write_frame(0, 0.0, ramp(kPixelsPerFrame)));
+    }
+    EXPECT_EQ(std::filesystem::file_size(path),
+              sizeof(FrameHeader) + kPayloadBytes);
+    std::filesystem::remove(path);
 }
 
 } // namespace

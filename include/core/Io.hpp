@@ -23,8 +23,9 @@ namespace opir {
 /// \param mode
 /// \return
 ///
-inline std::ofstream open_for_write(const std::filesystem::path &path,
-                                    std::ios::openmode mode = {}) {
+[[nodiscard]] inline std::ofstream
+open_for_write(const std::filesystem::path &path,
+               std::ios::openmode mode = {}) {
     std::ofstream out{path, mode | std::ios::out};
     if (!out) {
         throw Error(std::format("cannot open '{}' for writing", path.string()));
@@ -42,8 +43,8 @@ inline std::ofstream open_for_write(const std::filesystem::path &path,
 /// \param mode
 /// \return
 ///
-inline std::ifstream open_for_read(const std::filesystem::path &path,
-                                   std::ios::openmode mode = {}) {
+[[nodiscard]] inline std::ifstream
+open_for_read(const std::filesystem::path &path, std::ios::openmode mode = {}) {
     std::ifstream in{path, mode | std::ios::in};
     if (!in) {
         throw Error(std::format("cannot open '{}' for reading", path.string()));
@@ -105,8 +106,8 @@ inline void write_bytes(std::ostream &out, std::span<const std::byte> bytes) {
 /// \return nothing on success, EndOfStream at a clean end, ShortRead if the
 ///         stream ended part way through
 ///
-inline std::expected<void, ParseError> read_exact(std::istream &in,
-                                                  std::span<std::byte> bytes) {
+[[nodiscard]] inline std::expected<void, ParseError>
+read_exact(std::istream &in, std::span<std::byte> bytes) {
     const std::size_t got = read_bytes(in, bytes);
     if (got == bytes.size()) {
         return {};

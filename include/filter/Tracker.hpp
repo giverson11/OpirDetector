@@ -73,14 +73,14 @@ class Tracker {
     std::vector<TrackRecord> step(FrameId frame, double dt,
                                   std::span<const Detection> dets);
 
-    std::span<const Track> tracks() const { return tracks_; }
+    [[nodiscard]] std::span<const Track> tracks() const { return tracks_; }
 
   private:
     void predict_all(double dt);
     void associate(double dt, std::span<const Detection> dets);
     void spawn(std::span<const Detection> dets);
     void cleanup();
-    std::vector<TrackRecord> report(FrameId frame) const;
+    [[nodiscard]] std::vector<TrackRecord> report(FrameId frame) const;
 };
 
 } // namespace opir

@@ -40,7 +40,7 @@ class TruthTable {
     /// \return MalformedRecord if any line is not five parseable fields, or
     ///         names a frame beyond kMaxTruthFrameId
     ///
-    static std::expected<TruthTable, ParseError>
+    [[nodiscard]] static std::expected<TruthTable, ParseError>
     load(const std::filesystem::path &path);
 
     ///
@@ -50,10 +50,12 @@ class TruthTable {
     /// \return empty for a frame the file does not mention, which is what a
     ///         frame with every target out of view looks like
     ///
-    std::span<const TruthRecord> view_at(FrameId frame) const;
+    [[nodiscard]] std::span<const TruthRecord> view_at(FrameId frame) const;
 
     /// Every record, ordered by frame and then by target.
-    std::span<const TruthRecord> view_all() const { return records_; }
+    [[nodiscard]] std::span<const TruthRecord> view_all() const {
+        return records_;
+    }
 
     ///
     /// One past the highest frame id present, so a `for (FrameId f = 0; f <
@@ -61,7 +63,7 @@ class TruthTable {
     ///
     /// \return 0 for an empty file
     ///
-    FrameId frame_count() const {
+    [[nodiscard]] FrameId frame_count() const {
         return frame_offsets_.empty()
                    ? 0
                    : static_cast<FrameId>(frame_offsets_.size() - 1);

@@ -25,13 +25,13 @@ class AlphaBetaFilter {
     void predict(double dt);
 
     /// Pixels between a detection and the current prediction.
-    double error_magnitude(double row, double col) const;
+    [[nodiscard]] double error_magnitude(double row, double col) const;
 
     /// \param dt seconds since the predict() this corrects; must be positive
     ///           for the velocity term to be applied
     void update(double dt, double row, double col);
 
-    const StateEstimate &state() const { return x_; }
+    [[nodiscard]] const StateEstimate &state() const { return x_; }
 };
 
 } // namespace opir

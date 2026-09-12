@@ -14,7 +14,7 @@ enum class ParseError {
 
 };
 
-constexpr std::string_view to_string(ParseError e) {
+[[nodiscard]] constexpr std::string_view to_string(ParseError e) {
     switch (e) {
     case ParseError::EndOfStream:
         return "end of stream";

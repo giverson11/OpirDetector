@@ -327,7 +327,7 @@ TEST(TargetRender, MatchesTheAnalyticGaussianPixelForPixel) {
 TEST(TargetRecords, ThrowsWhenNoTargetHasBeenAdded) {
     SceneSimulator simulator(kGrid, kGrid, quiet_params(), kSeed);
 
-    EXPECT_THROW(simulator.getTargetRecords(0), Error);
+    EXPECT_THROW((void)simulator.getTargetRecords(0), Error);
 }
 
 /// One record per target, id by insertion order, stamped with the requested

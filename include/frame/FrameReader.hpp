@@ -26,7 +26,7 @@ class FrameReader {
 
   public:
     /// The stream carries its own shape, so no dimensions are needed here.
-    explicit FrameReader(std::filesystem::path path);
+    [[nodiscard]] explicit FrameReader(std::filesystem::path path);
 
     ///
     /// Reads the next frame, or reports why it could not.
@@ -34,7 +34,7 @@ class FrameReader {
     /// \return EndOfStream once the file is exhausted, which is the normal way
     ///         a read loop finishes rather than a failure.
     ///
-    std::expected<FrameView, ParseError> next();
+    [[nodiscard]] std::expected<FrameView, ParseError> next();
 };
 
 } // namespace opir

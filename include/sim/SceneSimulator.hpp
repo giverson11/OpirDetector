@@ -16,8 +16,8 @@ namespace opir {
 ///
 struct Target {
     double r0, c0, r_rate, c_rate, amplitude, sigma;
-    double row(double t) const { return r0 + r_rate * t; }
-    double col(double t) const { return c0 + c_rate * t; }
+    [[nodiscard]] double row(double t) const { return r0 + r_rate * t; }
+    [[nodiscard]] double col(double t) const { return c0 + c_rate * t; }
 };
 
 ///
@@ -94,7 +94,7 @@ class SceneSimulator {
     /// \param t
     /// \return std::vector<TruthRecord>
     ///
-    std::vector<TruthRecord> getTargetRecords(FrameId frame);
+    [[nodiscard]] std::vector<TruthRecord> getTargetRecords(FrameId frame);
 
   private:
     ///
@@ -105,6 +105,6 @@ class SceneSimulator {
     /// \return true
     /// \return false
     ///
-    bool isTargetInFrame(const double row, const double col);
+    [[nodiscard]] bool isTargetInFrame(const double row, const double col);
 };
 } // namespace opir

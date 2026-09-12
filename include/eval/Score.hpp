@@ -50,9 +50,10 @@ struct FrameScore {
 /// \param params
 /// \return every truth record and every track accounted for exactly once
 ///
-FrameScore score_frame(FrameId frame, std::span<const TruthRecord> truth,
-                       std::span<const TrackRecord> tracks,
-                       const ScoreParams &params = {});
+[[nodiscard]] FrameScore score_frame(FrameId frame,
+                                     std::span<const TruthRecord> truth,
+                                     std::span<const TrackRecord> tracks,
+                                     const ScoreParams &params = {});
 
 ///
 /// Running count, mean and variance in one pass.
@@ -66,11 +67,11 @@ class ScoreForm {
   public:
     void add(double x);
 
-    std::size_t count() const { return n_; }
-    double mean() const { return mean_; }
+    [[nodiscard]] std::size_t count() const { return n_; }
+    [[nodiscard]] double mean() const { return mean_; }
 
-    double variance() const;
-    double stddev() const;
+    [[nodiscard]] double variance() const;
+    [[nodiscard]] double stddev() const;
 };
 
 /// What one target's run looked like. Errors only ever come from the frames
@@ -124,7 +125,7 @@ class Scorer {
     FrameScore add(FrameId frame, std::span<const TruthRecord> truth,
                    std::span<const TrackRecord> tracks);
 
-    RunSummary summary() const;
+    [[nodiscard]] RunSummary summary() const;
 };
 
 } // namespace opir
