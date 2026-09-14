@@ -1,6 +1,6 @@
 # OPIR Detection
 
-A C++23 practice pipeline: simulate an overhead persistent infrared scene,
+A C++23 pipeline: simulate an overhead persistent infrared scene,
 detect point targets in it, track them across frames, and score the result
 against the truth the simulator recorded.
 
